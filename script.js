@@ -230,7 +230,7 @@ function renderResult({ meta, rows }) {
       return `
         <article class="mobile-card">
           <div class="mobile-card-top">
-            <span>Rd ${escapeHtml(row.round || "-")}</span>
+            <span>Rd ${escapeHtml(row.round || "-")} · Bo ${escapeHtml(row.board || "-")}</span>
             <span class="mobile-card-side">${renderColorMarker(row.color)} ${escapeHtml(row.result || "-")}</span>
           </div>
           <h3>${nameLine}</h3>
