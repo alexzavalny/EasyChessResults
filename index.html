@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Easy Chess Results</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Chess-Results parser</p>
+        <h1>Minimal opponents table for a single player</h1>
+        <p class="lede">
+          Paste a Chess-Results player page URL and render only the competitor list.
+        </p>
+      </section>
+
+      <section class="panel controls" id="controls-panel">
+        <form id="load-form" class="stack">
+          <label class="field">
+            <span>Player page URL</span>
+            <input
+              id="url-input"
+              name="url"
+              type="url"
+              required
+              spellcheck="false"
+              value="https://s3.chess-results.com/tnr1359649.aspx?lan=1&art=9&fed=LAT&turdet=YES&flag=30&snr=61&SNode=S0"
+              placeholder="https://s3.chess-results.com/tnr....aspx?art=9&snr=..."
+            />
+          </label>
+
+          <div class="actions">
+            <button type="submit" id="load-button">Load page</button>
+            <button type="button" id="demo-button" class="ghost">Load demo HTML</button>
+          </div>
+        </form>
+
+        <details class="fallback">
+          <summary>Fallback if browser blocks direct loading</summary>
+          <div class="stack">
+            <p>
+              Some browsers will block cross-origin requests to Chess-Results. If that happens,
+              open the player page, view page source, copy the HTML, and paste it here.
+            </p>
+            <label class="field">
+              <span>HTML source</span>
+              <textarea
+                id="html-input"
+                rows="10"
+                placeholder="Paste full HTML here, then click Parse pasted HTML"
+              ></textarea>
+            </label>
+            <button type="button" id="parse-button" class="ghost">Parse pasted HTML</button>
+          </div>
+        </details>
+
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+
+      <section id="result-panel" class="panel result" hidden>
+        <div class="result-head">
+          <div>
+            <p class="label">Player</p>
+            <div class="player-title-row">
+              <h2 id="player-name">-</h2>
+              <button type="button" id="clear-button" class="clear-button" hidden aria-label="Clear player">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="chips" id="player-meta"></div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rd</th>
+                <th>Bo</th>
+                <th>Title</th>
+                <th>Name</th>
+                <th>Rtg</th>
+                <th>Club</th>
+                <th>Pts</th>
+                <th>Clr</th>
+                <th>Res</th>
+              </tr>
+            </thead>
+            <tbody id="opponents-body"></tbody>
+          </table>
+        </div>
+
+        <div id="mobile-list" class="mobile-list" hidden></div>
+      </section>
+
+      <button type="button" id="mobile-reload" class="mobile-reload" hidden>Reload</button>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

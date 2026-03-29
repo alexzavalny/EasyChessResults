@@ -1,0 +1,392 @@
+:root {
+  --bg: #f3efe4;
+  --panel: rgba(255, 252, 246, 0.88);
+  --panel-strong: rgba(255, 250, 242, 0.96);
+  --line: rgba(28, 35, 33, 0.16);
+  --text: #1a2322;
+  --muted: #5c6a67;
+  --accent: #bf5b32;
+  --accent-dark: #8d3d1e;
+  --shadow: 0 24px 60px rgba(42, 37, 27, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Manrope", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(191, 91, 50, 0.18), transparent 24rem),
+    radial-gradient(circle at bottom right, rgba(58, 89, 79, 0.14), transparent 22rem),
+    linear-gradient(180deg, #f7f1e6 0%, #eee8dc 100%);
+}
+
+.shell {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+.hero {
+  padding: 1rem 0 1.5rem;
+}
+
+.eyebrow,
+.label,
+.status,
+input,
+textarea,
+button,
+th,
+td,
+.chips {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.eyebrow,
+.label {
+  margin: 0 0 0.75rem;
+  color: var(--accent-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  max-width: 12ch;
+  font-size: clamp(2.4rem, 5vw, 5.2rem);
+  line-height: 0.94;
+  letter-spacing: -0.05em;
+}
+
+.lede {
+  max-width: 50rem;
+  margin-top: 1rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.controls,
+.result {
+  padding: 1.25rem;
+}
+
+.controls {
+  background: var(--panel-strong);
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.field span {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+input,
+textarea,
+button {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+input,
+textarea {
+  padding: 0.95rem 1rem;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 12rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+button {
+  width: auto;
+  padding: 0.95rem 1.25rem;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button[type="submit"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff8f1;
+}
+
+button.ghost {
+  background: transparent;
+}
+
+.fallback {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.fallback summary {
+  cursor: pointer;
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.status {
+  min-height: 1.25rem;
+  margin-top: 1rem;
+  color: var(--muted);
+}
+
+.status.error {
+  color: #8f2d22;
+}
+
+.status.success {
+  color: #275a4a;
+}
+
+.result {
+  margin-top: 1rem;
+}
+
+.result-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+}
+
+.player-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clear-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  min-width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(28, 35, 33, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chips span {
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(191, 91, 50, 0.08);
+  border: 1px solid rgba(191, 91, 50, 0.14);
+  font-size: 0.8rem;
+}
+
+.table-wrap {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.mobile-list {
+  display: none;
+  margin-top: 1rem;
+  gap: 0.75rem;
+}
+
+.mobile-reload {
+  display: none;
+}
+
+.mobile-card {
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(28, 35, 33, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.mobile-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.mobile-card-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.mobile-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.mobile-card p {
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mobile-club {
+  font-size: 0.82rem;
+}
+
+.color-dot {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(28, 35, 33, 0.18);
+  vertical-align: middle;
+}
+
+.color-dot.white {
+  background: #fffdf8;
+}
+
+.color-dot.black {
+  background: #1a2322;
+}
+
+.color-dot.empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+thead th {
+  text-align: left;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 0.85rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+}
+
+tbody td {
+  padding: 0.9rem 0.65rem;
+  border-bottom: 1px solid rgba(28, 35, 33, 0.08);
+  vertical-align: top;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+a {
+  color: inherit;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: min(100% - 1rem, 1120px);
+    padding-top: 1rem;
+  }
+
+  .controls,
+  .result {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+
+  .mobile-list {
+    display: grid;
+  }
+
+  .chips span {
+    font-size: 0.74rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  h2 {
+    font-size: 1.35rem;
+  }
+
+  .mobile-reload {
+    display: block;
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 20;
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff8f1;
+    box-shadow: 0 14px 30px rgba(141, 61, 30, 0.28);
+  }
+
+  .shell {
+    padding-bottom: 6rem;
+  }
+}
