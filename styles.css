@@ -201,6 +201,13 @@ button.ghost {
   gap: 0.75rem;
 }
 
+.result-subtitle {
+  margin-top: 0.55rem;
+  max-width: 52rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .clear-button {
   display: inline-flex;
   align-items: center;
@@ -326,6 +333,14 @@ tbody td {
   padding: 0.9rem 0.65rem;
   border-bottom: 1px solid rgba(28, 35, 33, 0.08);
   vertical-align: top;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.align-right {
+  text-align: right;
 }
 
 tbody tr:last-child td {

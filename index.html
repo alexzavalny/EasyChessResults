@@ -16,29 +16,29 @@
     <main class="shell">
       <section class="hero">
         <p class="eyebrow">Chess-Results parser</p>
-        <h1>Minimal opponents table for a single player</h1>
+        <h1>Minimal tournament and player views</h1>
         <p class="lede">
-          Paste a Chess-Results player page URL and render only the competitor list.
+          Paste a Chess-Results tournament ranking or player page URL and render a cleaner view.
         </p>
       </section>
 
       <section class="panel controls" id="controls-panel">
         <form id="load-form" class="stack">
           <label class="field">
-            <span>Player page URL</span>
+            <span>Chess-Results URL</span>
             <input
               id="url-input"
               name="url"
               type="url"
               required
               spellcheck="false"
-              placeholder="https://s3.chess-results.com/tnr....aspx?art=9&snr=..."
+              placeholder="https://s3.chess-results.com/tnr....aspx?art=1 or art=9..."
             />
           </label>
 
           <div class="actions">
             <button type="submit" id="load-button">Load page</button>
-            <button type="button" id="demo-button" class="ghost">Load demo HTML</button>
+            <button type="button" id="demo-button" class="ghost">Load demo player</button>
           </div>
         </form>
 
@@ -47,7 +47,7 @@
           <div class="stack">
             <p>
               Some browsers will block cross-origin requests to Chess-Results. If that happens,
-              open the player page, view page source, copy the HTML, and paste it here.
+              open the page, view page source, copy the HTML, and paste it here.
             </p>
             <label class="field">
               <span>HTML source</span>
@@ -67,33 +67,22 @@
       <section id="result-panel" class="panel result" hidden>
         <div class="result-head">
           <div>
-            <p class="label">Player</p>
+            <p class="label" id="result-kind">View</p>
             <div class="player-title-row">
-              <h2 id="player-name">-</h2>
-              <button type="button" id="clear-button" class="clear-button" hidden aria-label="Clear player">
+              <h2 id="result-title">-</h2>
+              <button type="button" id="clear-button" class="clear-button" hidden aria-label="Clear view">
                 ×
               </button>
             </div>
+            <p id="result-subtitle" class="result-subtitle" hidden></p>
           </div>
-          <div class="chips" id="player-meta"></div>
+          <div class="chips" id="result-meta"></div>
         </div>
 
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Rd</th>
-                <th>Bo</th>
-                <th>Title</th>
-                <th>Name</th>
-                <th>Rtg</th>
-                <th>Club</th>
-                <th>Pts</th>
-                <th>Clr</th>
-                <th>Res</th>
-              </tr>
-            </thead>
-            <tbody id="opponents-body"></tbody>
+            <thead id="results-head"></thead>
+            <tbody id="results-body"></tbody>
           </table>
         </div>
 

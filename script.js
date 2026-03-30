@@ -25,9 +25,12 @@ const parseButton = document.querySelector("#parse-button");
 const demoButton = document.querySelector("#demo-button");
 const statusNode = document.querySelector("#status");
 const resultPanel = document.querySelector("#result-panel");
-const playerNameNode = document.querySelector("#player-name");
-const playerMetaNode = document.querySelector("#player-meta");
-const opponentsBodyNode = document.querySelector("#opponents-body");
+const resultKindNode = document.querySelector("#result-kind");
+const resultTitleNode = document.querySelector("#result-title");
+const resultSubtitleNode = document.querySelector("#result-subtitle");
+const resultMetaNode = document.querySelector("#result-meta");
+const resultsHeadNode = document.querySelector("#results-head");
+const resultsBodyNode = document.querySelector("#results-body");
 const mobileListNode = document.querySelector("#mobile-list");
 const mobileReloadButton = document.querySelector("#mobile-reload");
 const clearButton = document.querySelector("#clear-button");
@@ -64,7 +67,7 @@ function writeUrlToQuery(url, mode = "replace") {
   window.history.replaceState({}, "", nextUrl);
 }
 
-function buildInternalPlayerUrl(url) {
+function buildInternalPageUrl(url) {
   const nextUrl = new URL(window.location.href);
   nextUrl.searchParams.set("url", url);
   return nextUrl.toString();
@@ -76,9 +79,13 @@ function clearView({ keepUrl = false } = {}) {
   mobileReloadButton.hidden = true;
   clearButton.hidden = true;
   controlsPanel.hidden = false;
-  playerNameNode.textContent = "-";
-  playerMetaNode.innerHTML = "";
-  opponentsBodyNode.innerHTML = "";
+  resultKindNode.textContent = "View";
+  resultTitleNode.textContent = "-";
+  resultSubtitleNode.textContent = "";
+  resultSubtitleNode.hidden = true;
+  resultMetaNode.innerHTML = "";
+  resultsHeadNode.innerHTML = "";
+  resultsBodyNode.innerHTML = "";
   mobileListNode.innerHTML = "";
 
   if (!keepUrl) {
@@ -90,14 +97,65 @@ function normalizeCell(cell) {
   return cell.textContent.replace(/\s+/g, " ").trim();
 }
 
-function parsePlayerPage(html, sourceUrl = "") {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function chip(label, value) {
+  if (!value) {
+    return "";
+  }
+  return `<span>${escapeHtml(label)}: ${escapeHtml(value)}</span>`;
+}
+
+function getHeadingText(dialog) {
+  const heading = dialog.querySelector("h2");
+  return heading ? normalizeCell(heading) : "";
+}
+
+function cleanHeaderLabel(label, index) {
+  if (label) {
+    return label;
+  }
+
+  if (index === 3) {
+    return "Title";
+  }
+
+  return `Col ${index + 1}`;
+}
+
+function shouldKeepTournamentColumn(label, index) {
+  if (index === 2) {
+    return false;
+  }
+
+  return !["sex", "FED", "TB2", "TB3", "K"].includes(label);
+}
+
+function isRightAlignedCell(cell) {
+  return cell.className.includes("CRr");
+}
+
+function buildCell({ text = "", href = "", align = "", color = "", raw = "", isNumeric = false } = {}) {
+  return {
+    text,
+    href,
+    align,
+    color,
+    raw,
+    isNumeric
+  };
+}
+
+function parsePlayerPage(doc, sourceUrl = "") {
   const dialogs = [...doc.querySelectorAll(".defaultDialog")];
-  const playerDialog = dialogs.find((dialog) => {
-    const heading = dialog.querySelector("h2");
-    return heading && heading.textContent.trim().toLowerCase() === "player info";
-  });
+  const playerDialog = dialogs.find((dialog) => getHeadingText(dialog).toLowerCase() === "player info");
 
   if (!playerDialog) {
     throw new Error("Could not find the 'Player info' section in the provided HTML.");
@@ -119,6 +177,18 @@ function parsePlayerPage(html, sourceUrl = "") {
     }
   }
 
+  const columns = [
+    { key: "round", label: "Rd", align: "center" },
+    { key: "board", label: "Bo", align: "center" },
+    { key: "title", label: "Title" },
+    { key: "name", label: "Name" },
+    { key: "rating", label: "Rtg", align: "right" },
+    { key: "club", label: "Club" },
+    { key: "points", label: "Pts", align: "center" },
+    { key: "color", label: "Clr", align: "center" },
+    { key: "result", label: "Res", align: "center" }
+  ];
+
   const rows = [];
   for (const row of opponentsTable.querySelectorAll("tr")) {
     if (row.querySelector("th")) {
@@ -131,46 +201,207 @@ function parsePlayerPage(html, sourceUrl = "") {
     }
 
     const link = cells[4].querySelector("a");
+    const url = link ? new URL(link.getAttribute("href"), sourceUrl || "https://chess-results.com").href : "";
+    const color = cells[9].querySelector(".FarbewT")
+      ? "white"
+      : cells[9].querySelector(".FarbesT")
+        ? "black"
+        : "";
+
     rows.push({
-      round: normalizeCell(cells[0]),
-      board: normalizeCell(cells[1]),
-      sno: normalizeCell(cells[2]),
-      title: normalizeCell(cells[3]),
-      name: normalizeCell(cells[4]),
-      rating: normalizeCell(cells[5]),
-      federation: normalizeCell(cells[6]),
-      club: normalizeCell(cells[7]),
-      points: normalizeCell(cells[8]),
-      result: normalizeCell(cells[9]),
-      color: cells[9].querySelector(".FarbewT")
-        ? "white"
-        : cells[9].querySelector(".FarbesT")
-          ? "black"
-          : "",
-      url: link ? new URL(link.getAttribute("href"), sourceUrl || "https://chess-results.com").href : ""
+      cells: [
+        buildCell({ text: normalizeCell(cells[0]), align: "center" }),
+        buildCell({ text: normalizeCell(cells[1]), align: "center" }),
+        buildCell({ text: normalizeCell(cells[3]) }),
+        buildCell({ text: normalizeCell(cells[4]), href: url }),
+        buildCell({ text: normalizeCell(cells[5]), align: "right", isNumeric: true }),
+        buildCell({ text: normalizeCell(cells[7]) }),
+        buildCell({ text: normalizeCell(cells[8]), align: "center", isNumeric: true }),
+        buildCell({ text: color ? color[0].toUpperCase() : "", align: "center", color, raw: color || "empty-color" }),
+        buildCell({ text: normalizeCell(cells[9]), align: "center" })
+      ],
+      mobile: {
+        topLeft: `Rd ${normalizeCell(cells[0]) || "-"} · Bo ${normalizeCell(cells[1]) || "-"}`,
+        topRight: normalizeCell(cells[9]) || "-",
+        topRightColor: color,
+        title: `${normalizeCell(cells[3]) ? `${normalizeCell(cells[3])} ` : ""}${normalizeCell(cells[4]) || "-"}`,
+        titleHref: url,
+        details: [
+          [normalizeCell(cells[5]) || "-", normalizeCell(cells[8]) || "-"].join(" · "),
+          normalizeCell(cells[7]) || "-"
+        ]
+      }
     });
   }
 
   return {
-    meta,
+    kind: "player",
+    label: "Player",
+    title: meta.Name || "Unknown player",
+    subtitle: "",
+    chips: [
+      { label: "Title", value: meta.Title },
+      { label: "Rank", value: meta.Rank },
+      { label: "Points", value: meta.Points },
+      { label: "Performance", value: meta["Performance rating"] },
+      { label: "FED", value: meta.Federation },
+      { label: "Club", value: meta["Club/City"] }
+    ].filter((entry) => entry.value),
+    columns,
     rows
   };
 }
 
-function chip(label, value) {
-  if (!value) {
-    return "";
+function parseTournamentMeta(dialog) {
+  const meta = {};
+
+  for (const row of dialog.querySelectorAll("tr")) {
+    const cells = row.querySelectorAll(":scope > td");
+    if (cells.length >= 2) {
+      const key = normalizeCell(cells[0]);
+      const value = normalizeCell(cells[1]);
+      if (key && value) {
+        meta[key] = value;
+      }
+    }
   }
-  return `<span>${label}: ${value}</span>`;
+
+  const updateNode = dialog.querySelector(".CRsmall");
+  if (updateNode) {
+    const updateText = normalizeCell(updateNode);
+    const updateMatch = updateText.match(/Last update\s+(.*?)(?:,\s*Creator\/Last Upload:|$)/i);
+    if (updateMatch?.[1]) {
+      meta["Last update"] = updateMatch[1].trim();
+    }
+  }
+
+  return meta;
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+function parseTournamentPage(doc, sourceUrl = "") {
+  const dialogs = [...doc.querySelectorAll(".defaultDialog")];
+  const rankingDialog = dialogs.find((dialog) => {
+    const heading = getHeadingText(dialog).toLowerCase();
+    return heading.includes("ranking") && dialog.querySelector("table.CRs1");
+  });
+
+  if (!rankingDialog) {
+    throw new Error("Could not find a tournament ranking table in the provided HTML.");
+  }
+
+  const metaDialog = dialogs.find((dialog) => dialog !== rankingDialog && getHeadingText(dialog) && dialog.querySelector("table"));
+  if (!metaDialog) {
+    throw new Error("Could not find the tournament details section in the provided HTML.");
+  }
+
+  const meta = parseTournamentMeta(metaDialog);
+  const rankingTable = rankingDialog.querySelector("table.CRs1");
+  const headerRow = rankingTable.querySelector("tr");
+  const headerCells = [...headerRow.children];
+  const keptIndexes = [];
+  const columns = [];
+
+  headerCells.forEach((cell, index) => {
+    const label = cleanHeaderLabel(normalizeCell(cell).replace(/\u00a0/g, " ").trim(), index);
+    if (!label || label === "Col 3") {
+      return;
+    }
+
+    if (!shouldKeepTournamentColumn(label, index)) {
+      return;
+    }
+
+    keptIndexes.push(index);
+    columns.push({
+      key: `col-${index}`,
+      label,
+      align: cell.className.includes("CRc") ? "center" : cell.className.includes("CRr") ? "right" : ""
+    });
+  });
+
+  const rows = [];
+  for (const row of rankingTable.querySelectorAll("tr")) {
+    if (row.querySelector("th")) {
+      continue;
+    }
+
+    const cells = [...row.children];
+    if (cells.length < headerCells.length) {
+      continue;
+    }
+
+    const mappedCells = keptIndexes.map((sourceIndex) => {
+      const cell = cells[sourceIndex];
+      const link = cell.querySelector("a");
+      const href = link ? new URL(link.getAttribute("href"), sourceUrl || "https://chess-results.com").href : "";
+      const text = normalizeCell(cell);
+
+      return buildCell({
+        text,
+        href,
+        align: columns[keptIndexes.indexOf(sourceIndex)]?.align || (isRightAlignedCell(cell) ? "right" : ""),
+        isNumeric: isRightAlignedCell(cell)
+      });
+    });
+
+    const nameCell = mappedCells.find((cell, index) => columns[index]?.label === "Name");
+    const pointsCell = mappedCells.find((cell, index) => columns[index]?.label === "Pts.");
+    const ratingCell = mappedCells.find((cell, index) => columns[index]?.label === "Rtg");
+    const clubCell = mappedCells.find((cell, index) => columns[index]?.label === "Club/City");
+    const rankCell = mappedCells.find((cell, index) => columns[index]?.label === "Rk.");
+
+    rows.push({
+      cells: mappedCells,
+      mobile: {
+        topLeft: `Rank ${rankCell?.text || "-"}`,
+        topRight: `${pointsCell?.text || "-"} pts`,
+        topRightColor: "",
+        title: nameCell?.text || "-",
+        titleHref: nameCell?.href || "",
+        details: [
+          [ratingCell?.text || "-", clubCell?.text || "-"].join(" · "),
+          columns
+            .slice(0, 5)
+            .map((column, index) => {
+              const value = mappedCells[index]?.text || "";
+              if (!value || ["Rk.", "Name"].includes(column.label)) {
+                return "";
+              }
+              return `${column.label} ${value}`;
+            })
+            .filter(Boolean)
+            .join(" · ")
+        ].filter(Boolean)
+      }
+    });
+  }
+
+  return {
+    kind: "tournament",
+    label: "Tournament",
+    title: getHeadingText(metaDialog) || "Tournament",
+    subtitle: getHeadingText(rankingDialog),
+    chips: [
+      { label: "FED", value: meta.Federation },
+      { label: "Rounds", value: meta["Number of rounds"] },
+      { label: "Type", value: meta["Tournament type"] },
+      { label: "Control", value: meta["Time control (Rapid)"] || meta["Time control"] },
+      { label: "Date", value: meta.Date },
+      { label: "Updated", value: meta["Last update"] }
+    ].filter((entry) => entry.value),
+    columns,
+    rows
+  };
+}
+
+function parseChessResultsPage(html, sourceUrl = "") {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const hasPlayerInfo = [...doc.querySelectorAll(".defaultDialog h2")].some(
+    (heading) => normalizeCell(heading).toLowerCase() === "player info"
+  );
+
+  return hasPlayerInfo ? parsePlayerPage(doc, sourceUrl) : parseTournamentPage(doc, sourceUrl);
 }
 
 function renderColorMarker(color) {
@@ -185,61 +416,79 @@ function renderColorMarker(color) {
   return '<span class="color-dot empty" aria-hidden="true"></span>';
 }
 
-function renderResult({ meta, rows }) {
-  playerNameNode.textContent = meta.Name || "Unknown player";
-  playerMetaNode.innerHTML = [
-    chip("Title", meta.Title),
-    chip("Rank", meta.Rank),
-    chip("Points", meta.Points),
-    chip("Performance", meta["Performance rating"]),
-    chip("FED", meta.Federation),
-    chip("Club", meta["Club/City"])
-  ]
-    .filter(Boolean)
-    .join("");
+function renderCellContent(cell) {
+  const content =
+    cell.raw === "white" || cell.raw === "black" || cell.raw === "empty-color"
+      ? renderColorMarker(cell.raw)
+      : escapeHtml(cell.text || "-");
 
-  opponentsBodyNode.innerHTML = rows
-    .map((row) => {
-      const nameCell = row.url
-        ? `<a href="${escapeHtml(buildInternalPlayerUrl(row.url))}">${escapeHtml(row.name || "-")}</a>`
-        : escapeHtml(row.name || "-");
+  if (cell.href) {
+    return `<a href="${escapeHtml(buildInternalPageUrl(cell.href))}">${content}</a>`;
+  }
 
-      return `
+  return content;
+}
+
+function renderTableHead(columns) {
+  return `
+    <tr>
+      ${columns
+        .map((column) => `<th class="${column.align ? `align-${column.align}` : ""}">${escapeHtml(column.label)}</th>`)
+        .join("")}
+    </tr>
+  `;
+}
+
+function renderTableRows(rows) {
+  return rows
+    .map(
+      (row) => `
         <tr>
-          <td>${escapeHtml(row.round || "-")}</td>
-          <td>${escapeHtml(row.board || "-")}</td>
-          <td>${escapeHtml(row.title || "-")}</td>
-          <td>${nameCell}</td>
-          <td>${escapeHtml(row.rating || "-")}</td>
-          <td>${escapeHtml(row.club || "-")}</td>
-          <td>${escapeHtml(row.points || "-")}</td>
-          <td>${renderColorMarker(row.color)}</td>
-          <td>${escapeHtml(row.result || "-")}</td>
+          ${row.cells
+            .map(
+              (cell) =>
+                `<td class="${cell.align ? `align-${cell.align}` : ""}">${renderCellContent(cell)}</td>`
+            )
+            .join("")}
         </tr>
-      `;
-    })
+      `
+    )
     .join("");
+}
 
-  mobileListNode.innerHTML = rows
+function renderMobileRows(rows) {
+  return rows
     .map((row) => {
-      const title = row.title ? `${row.title} ` : "";
-      const nameLine = row.url
-        ? `<a href="${escapeHtml(buildInternalPlayerUrl(row.url))}">${escapeHtml(title)}${escapeHtml(row.name || "-")}</a>`
-        : `${escapeHtml(title)}${escapeHtml(row.name || "-")}`;
+      const title = row.mobile.titleHref
+        ? `<a href="${escapeHtml(buildInternalPageUrl(row.mobile.titleHref))}">${escapeHtml(row.mobile.title)}</a>`
+        : escapeHtml(row.mobile.title);
+      const sideMarker = row.mobile.topRightColor ? `${renderColorMarker(row.mobile.topRightColor)} ` : "";
 
       return `
         <article class="mobile-card">
           <div class="mobile-card-top">
-            <span>Rd ${escapeHtml(row.round || "-")} · Bo ${escapeHtml(row.board || "-")}</span>
-            <span class="mobile-card-side">${renderColorMarker(row.color)} ${escapeHtml(row.result || "-")}</span>
+            <span>${escapeHtml(row.mobile.topLeft)}</span>
+            <span class="mobile-card-side">${sideMarker}${escapeHtml(row.mobile.topRight)}</span>
           </div>
-          <h3>${nameLine}</h3>
-          <p>${escapeHtml(row.rating || "-")} · ${escapeHtml(row.points || "-")}</p>
-          <p class="mobile-club">${escapeHtml(row.club || "-")}</p>
+          <h3>${title}</h3>
+          ${row.mobile.details
+            .map((detail, index) => `<p class="${index === row.mobile.details.length - 1 ? "mobile-club" : ""}">${escapeHtml(detail)}</p>`)
+            .join("")}
         </article>
       `;
     })
     .join("");
+}
+
+function renderResult(view) {
+  resultKindNode.textContent = view.label;
+  resultTitleNode.textContent = view.title;
+  resultSubtitleNode.textContent = view.subtitle || "";
+  resultSubtitleNode.hidden = !view.subtitle;
+  resultMetaNode.innerHTML = view.chips.map((entry) => chip(entry.label, entry.value)).join("");
+  resultsHeadNode.innerHTML = renderTableHead(view.columns);
+  resultsBodyNode.innerHTML = renderTableRows(view.rows);
+  mobileListNode.innerHTML = renderMobileRows(view.rows);
 
   resultPanel.hidden = false;
   mobileListNode.hidden = false;
@@ -249,7 +498,7 @@ function renderResult({ meta, rows }) {
 }
 
 async function loadFromUrl(url, { historyMode = "replace" } = {}) {
-  setStatus(`Loading player page via ${PROXY_LOADER.name}...`);
+  setStatus(`Loading Chess-Results page via ${PROXY_LOADER.name}...`);
 
   try {
     const response = await fetch(PROXY_LOADER.buildUrl(url));
@@ -262,7 +511,7 @@ async function loadFromUrl(url, { historyMode = "replace" } = {}) {
       throw new Error("Proxy returned an empty response.");
     }
 
-    const parsed = parsePlayerPage(html, url);
+    const parsed = parseChessResultsPage(html, url);
     renderResult(parsed);
     writeUrlToQuery(url, historyMode);
     setStatus(`Loaded ${parsed.rows.length} rows via ${PROXY_LOADER.name}.`, "success");
@@ -276,7 +525,7 @@ form.addEventListener("submit", async (event) => {
   const url = urlInput.value.trim();
 
   if (!url) {
-    setStatus("Enter a Chess-Results player page URL.", "error");
+    setStatus("Enter a Chess-Results page URL.", "error");
     return;
   }
 
@@ -293,12 +542,12 @@ form.addEventListener("submit", async (event) => {
 parseButton.addEventListener("click", () => {
   const html = htmlInput.value.trim();
   if (!html) {
-    setStatus("Paste the full player page HTML first.", "error");
+    setStatus("Paste the full Chess-Results page HTML first.", "error");
     return;
   }
 
   try {
-    const parsed = parsePlayerPage(html, urlInput.value.trim());
+    const parsed = parseChessResultsPage(html, urlInput.value.trim());
     renderResult(parsed);
     setStatus(`Parsed ${parsed.rows.length} rows from pasted HTML.`, "success");
   } catch (error) {
@@ -311,9 +560,9 @@ demoButton.addEventListener("click", () => {
   urlInput.value = DEMO_URL;
 
   try {
-    const parsed = parsePlayerPage(DEMO_HTML, DEMO_URL);
+    const parsed = parseChessResultsPage(DEMO_HTML, DEMO_URL);
     renderResult(parsed);
-    setStatus(`Loaded demo data for ${parsed.meta.Name}.`, "success");
+    setStatus(`Loaded demo data for ${parsed.title}.`, "success");
   } catch (error) {
     setStatus(error.message, "error");
   }
@@ -323,7 +572,7 @@ mobileReloadButton.addEventListener("click", async () => {
   const url = urlInput.value.trim();
 
   if (!url) {
-    setStatus("Enter a Chess-Results player page URL.", "error");
+    setStatus("Enter a Chess-Results page URL.", "error");
     return;
   }
 
@@ -353,16 +602,16 @@ resultPanel.addEventListener("click", async (event) => {
     return;
   }
 
-  const targetPlayerUrl = nextUrl.searchParams.get("url");
-  if (!targetPlayerUrl) {
+  const targetUrl = nextUrl.searchParams.get("url");
+  if (!targetUrl) {
     return;
   }
 
   event.preventDefault();
-  urlInput.value = targetPlayerUrl;
+  urlInput.value = targetUrl;
 
   try {
-    await loadFromUrl(targetPlayerUrl, { historyMode: "push" });
+    await loadFromUrl(targetUrl, { historyMode: "push" });
   } catch (error) {
     setStatus(error.message, "error");
   }

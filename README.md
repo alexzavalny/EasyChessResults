@@ -1,13 +1,13 @@
 # Easy Chess Results
 
-Static prototype for showing a minimal opponents table from a Chess-Results player page.
+Static prototype for showing cleaner tournament and player views from Chess-Results pages.
 
 ## What it does
 
-- Accepts a Chess-Results player page URL.
+- Accepts a Chess-Results tournament ranking URL (`art=1`) or player page URL (`art=9`).
 - Tries to fetch the page directly in the browser.
-- Extracts the `Player info` section and the opponent table.
-- Renders only the compact competitor list.
+- Extracts either tournament ranking data or the `Player info` section.
+- Renders a compact ranking table or opponent list.
 
 ## Important limitation
 
