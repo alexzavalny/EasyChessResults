@@ -141,6 +141,29 @@ test("isTournamentRankingDialog accepts 'Rank after Round' tournament tables", (
   assert.equal(isTournamentRankingDialog(dialog), true);
 });
 
+test("isTournamentRankingDialog accepts 'Starting rank' tournament tables", () => {
+  const dialog = {
+    querySelector: (selector) => {
+      if (selector === "table.CRs1") {
+        return {
+          querySelectorAll: (innerSelector) =>
+            innerSelector === "tr th"
+              ? [{ textContent: "No." }, { textContent: "Name" }, { textContent: "Rtg" }]
+              : []
+        };
+      }
+
+      if (selector === "h2") {
+        return { textContent: "Starting rank" };
+      }
+
+      return null;
+    }
+  };
+
+  assert.equal(isTournamentRankingDialog(dialog), true);
+});
+
 test("attachPlayerNavigation adds back links to player rows only when parent exists", () => {
   const view = {
     kind: "player",
