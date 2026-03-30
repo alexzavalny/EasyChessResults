@@ -18,6 +18,7 @@ const DEMO_HTML = String.raw`<!DOCTYPE html>
 </html>`;
 
 const form = document.querySelector("#load-form");
+const heroSection = document.querySelector("#hero-section");
 const controlsPanel = document.querySelector("#controls-panel");
 const urlInput = document.querySelector("#url-input");
 const htmlInput = document.querySelector("#html-input");
@@ -27,6 +28,7 @@ const statusNode = document.querySelector("#status");
 const resultPanel = document.querySelector("#result-panel");
 const resultKindNode = document.querySelector("#result-kind");
 const resultTitleNode = document.querySelector("#result-title");
+const backLinkNode = document.querySelector("#back-link");
 const resultSubtitleNode = document.querySelector("#result-subtitle");
 const resultMetaNode = document.querySelector("#result-meta");
 const resultsHeadNode = document.querySelector("#results-head");
@@ -51,12 +53,23 @@ function readUrlFromQuery() {
   return params.get("url") || "";
 }
 
-function writeUrlToQuery(url, mode = "replace") {
+function readParentUrlFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("parent") || "";
+}
+
+function writeUrlToQuery(url, parentUrl = "", mode = "replace") {
   const nextUrl = new URL(window.location.href);
   if (url) {
     nextUrl.searchParams.set("url", url);
   } else {
     nextUrl.searchParams.delete("url");
+  }
+
+  if (parentUrl) {
+    nextUrl.searchParams.set("parent", parentUrl);
+  } else {
+    nextUrl.searchParams.delete("parent");
   }
 
   if (mode === "push") {
@@ -67,9 +80,14 @@ function writeUrlToQuery(url, mode = "replace") {
   window.history.replaceState({}, "", nextUrl);
 }
 
-function buildInternalPageUrl(url) {
+function buildInternalPageUrl(url, parentUrl = "") {
   const nextUrl = new URL(window.location.href);
   nextUrl.searchParams.set("url", url);
+  if (parentUrl) {
+    nextUrl.searchParams.set("parent", parentUrl);
+  } else {
+    nextUrl.searchParams.delete("parent");
+  }
   return nextUrl.toString();
 }
 
@@ -79,8 +97,11 @@ function clearView({ keepUrl = false } = {}) {
   mobileReloadButton.hidden = true;
   clearButton.hidden = true;
   controlsPanel.hidden = false;
+  heroSection.hidden = false;
   resultKindNode.textContent = "View";
   resultTitleNode.textContent = "-";
+  backLinkNode.hidden = true;
+  backLinkNode.href = "#";
   resultSubtitleNode.textContent = "";
   resultSubtitleNode.hidden = true;
   resultMetaNode.innerHTML = "";
@@ -247,6 +268,7 @@ function parsePlayerPage(doc, sourceUrl = "") {
       { label: "FED", value: meta.Federation },
       { label: "Club", value: meta["Club/City"] }
     ].filter((entry) => entry.value),
+    backUrl: "",
     columns,
     rows
   };
@@ -389,6 +411,7 @@ function parseTournamentPage(doc, sourceUrl = "") {
       { label: "Date", value: meta.Date },
       { label: "Updated", value: meta["Last update"] }
     ].filter((entry) => entry.value),
+    backUrl: "",
     columns,
     rows
   };
@@ -423,7 +446,7 @@ function renderCellContent(cell) {
       : escapeHtml(cell.text || "-");
 
   if (cell.href) {
-    return `<a href="${escapeHtml(buildInternalPageUrl(cell.href))}">${content}</a>`;
+    return `<a href="${escapeHtml(buildInternalPageUrl(cell.href, cell.parentUrl || ""))}">${content}</a>`;
   }
 
   return content;
@@ -460,7 +483,7 @@ function renderMobileRows(rows) {
   return rows
     .map((row) => {
       const title = row.mobile.titleHref
-        ? `<a href="${escapeHtml(buildInternalPageUrl(row.mobile.titleHref))}">${escapeHtml(row.mobile.title)}</a>`
+        ? `<a href="${escapeHtml(buildInternalPageUrl(row.mobile.titleHref, row.mobile.parentUrl || ""))}">${escapeHtml(row.mobile.title)}</a>`
         : escapeHtml(row.mobile.title);
       const sideMarker = row.mobile.topRightColor ? `${renderColorMarker(row.mobile.topRightColor)} ` : "";
 
@@ -483,6 +506,13 @@ function renderMobileRows(rows) {
 function renderResult(view) {
   resultKindNode.textContent = view.label;
   resultTitleNode.textContent = view.title;
+  if (view.kind === "player" && view.backUrl) {
+    backLinkNode.href = buildInternalPageUrl(view.backUrl);
+    backLinkNode.hidden = false;
+  } else {
+    backLinkNode.href = "#";
+    backLinkNode.hidden = true;
+  }
   resultSubtitleNode.textContent = view.subtitle || "";
   resultSubtitleNode.hidden = !view.subtitle;
   resultMetaNode.innerHTML = view.chips.map((entry) => chip(entry.label, entry.value)).join("");
@@ -495,9 +525,39 @@ function renderResult(view) {
   mobileReloadButton.hidden = false;
   clearButton.hidden = false;
   controlsPanel.hidden = true;
+  heroSection.hidden = true;
 }
 
-async function loadFromUrl(url, { historyMode = "replace" } = {}) {
+function isTournamentUrl(url) {
+  try {
+    return new URL(url).searchParams.get("art") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function attachPlayerBackLinks(view, parentUrl) {
+  if (view.kind !== "player" || !parentUrl) {
+    return view;
+  }
+
+  const nextRows = view.rows.map((row) => ({
+    ...row,
+    cells: row.cells.map((cell) => ({ ...cell, parentUrl })),
+    mobile: {
+      ...row.mobile,
+      parentUrl
+    }
+  }));
+
+  return {
+    ...view,
+    backUrl: parentUrl,
+    rows: nextRows
+  };
+}
+
+async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}) {
   setStatus(`Loading Chess-Results page via ${PROXY_LOADER.name}...`);
 
   try {
@@ -511,9 +571,9 @@ async function loadFromUrl(url, { historyMode = "replace" } = {}) {
       throw new Error("Proxy returned an empty response.");
     }
 
-    const parsed = parseChessResultsPage(html, url);
+    const parsed = attachPlayerBackLinks(parseChessResultsPage(html, url), parentUrl);
     renderResult(parsed);
-    writeUrlToQuery(url, historyMode);
+    writeUrlToQuery(url, parsed.backUrl || "", historyMode);
     setStatus(`Loaded ${parsed.rows.length} rows via ${PROXY_LOADER.name}.`, "success");
   } catch (error) {
     throw new Error(`${PROXY_LOADER.name}: ${error.message} Use the HTML paste fallback below.`);
@@ -577,14 +637,14 @@ mobileReloadButton.addEventListener("click", async () => {
   }
 
   try {
-    await loadFromUrl(url, { historyMode: "replace" });
+    await loadFromUrl(url, { historyMode: "replace", parentUrl: readParentUrlFromQuery() });
   } catch (error) {
     setStatus(error.message, "error");
   }
 });
 
 clearButton.addEventListener("click", () => {
-  writeUrlToQuery("", "push");
+  writeUrlToQuery("", "", "push");
   clearView({ keepUrl: true });
   urlInput.value = "";
   htmlInput.value = "";
@@ -608,19 +668,22 @@ resultPanel.addEventListener("click", async (event) => {
   }
 
   event.preventDefault();
+  const currentSourceUrl = urlInput.value.trim();
+  const parentUrl = isTournamentUrl(currentSourceUrl) ? currentSourceUrl : readParentUrlFromQuery();
   urlInput.value = targetUrl;
 
   try {
-    await loadFromUrl(targetUrl, { historyMode: "push" });
+    await loadFromUrl(targetUrl, { historyMode: "push", parentUrl });
   } catch (error) {
     setStatus(error.message, "error");
   }
 });
 
 const initialUrl = readUrlFromQuery();
+const initialParentUrl = readParentUrlFromQuery();
 if (initialUrl) {
   urlInput.value = initialUrl;
-  loadFromUrl(initialUrl, { historyMode: "replace" }).catch((error) => {
+  loadFromUrl(initialUrl, { historyMode: "replace", parentUrl: initialParentUrl }).catch((error) => {
     clearView({ keepUrl: true });
     setStatus(error.message, "error");
   });
@@ -628,6 +691,7 @@ if (initialUrl) {
 
 window.addEventListener("popstate", () => {
   const url = readUrlFromQuery();
+  const parentUrl = readParentUrlFromQuery();
 
   if (!url) {
     clearView({ keepUrl: true });
@@ -638,7 +702,7 @@ window.addEventListener("popstate", () => {
   }
 
   urlInput.value = url;
-  loadFromUrl(url, { historyMode: "replace" }).catch((error) => {
+  loadFromUrl(url, { historyMode: "replace", parentUrl }).catch((error) => {
     clearView({ keepUrl: true });
     setStatus(error.message, "error");
   });
