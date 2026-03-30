@@ -25,6 +25,7 @@ const {
   attachPlayerNavigation,
   buildInternalPageUrl,
   chip,
+  debugLog,
   isTournamentUrl,
   normalizeSupportedUrl,
   parseChessResultsPage,
@@ -36,11 +37,13 @@ const {
 } = window.ChessResults;
 
 function setStatus(message, tone = "") {
+  debugLog("setStatus", { message, tone });
   statusNode.textContent = message;
   statusNode.className = `status ${tone}`.trim();
 }
 
 function clearView({ keepUrl = false } = {}) {
+  debugLog("clearView", { keepUrl });
   resultPanel.hidden = true;
   mobileListNode.hidden = true;
   mobileReloadButton.hidden = true;
@@ -64,6 +67,15 @@ function clearView({ keepUrl = false } = {}) {
 }
 
 function renderResult(view) {
+  debugLog("renderResult", {
+    kind: view.kind,
+    title: view.title,
+    subtitle: view.subtitle,
+    chips: view.chips.length,
+    columns: view.columns.map((column) => column.label),
+    rows: view.rows.length,
+    backUrl: view.backUrl
+  });
   resultKindNode.textContent = view.label;
   resultTitleNode.textContent = view.title;
 
@@ -91,13 +103,30 @@ function renderResult(view) {
 }
 
 function parseAndPrepareView(html, sourceUrl, parentUrl = "") {
-  return attachPlayerNavigation(parseChessResultsPage(html, sourceUrl), parentUrl);
+  debugLog("parseAndPrepareView:start", { sourceUrl, parentUrl, htmlLength: html.length });
+  const parsed = parseChessResultsPage(html, sourceUrl);
+  debugLog("parseAndPrepareView:parsed", {
+    kind: parsed.kind,
+    title: parsed.title,
+    rows: parsed.rows.length
+  });
+  return attachPlayerNavigation(parsed, parentUrl);
 }
 
 async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}) {
   const normalizedUrl = normalizeSupportedUrl(url);
   const normalizedParentUrl = normalizeSupportedUrl(parentUrl);
   const wasNormalized = normalizedUrl !== url;
+  const proxyUrl = PROXY_LOADER.buildUrl(normalizedUrl);
+
+  debugLog("loadFromUrl:start", {
+    url,
+    normalizedUrl,
+    parentUrl,
+    normalizedParentUrl,
+    historyMode,
+    proxyUrl
+  });
 
   setStatus(
     wasNormalized
@@ -106,12 +135,23 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
   );
 
   try {
-    const response = await fetch(PROXY_LOADER.buildUrl(normalizedUrl));
+    const response = await fetch(proxyUrl);
+    debugLog("loadFromUrl:response", {
+      ok: response.ok,
+      status: response.status,
+      redirected: response.redirected,
+      finalUrl: response.url,
+      contentType: response.headers.get("content-type")
+    });
     if (!response.ok) {
       throw new Error(`Proxy request failed with status ${response.status}.`);
     }
 
     const html = await PROXY_LOADER.parseResponse(response);
+    debugLog("loadFromUrl:html received", {
+      length: html.length,
+      firstChunk: html.slice(0, 200)
+    });
     if (!html) {
       throw new Error("Proxy returned an empty response.");
     }
@@ -131,6 +171,14 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
       "success"
     );
   } catch (error) {
+    debugLog("loadFromUrl:error", {
+      message: error.message,
+      stack: error.stack,
+      url,
+      normalizedUrl,
+      parentUrl,
+      normalizedParentUrl
+    });
     throw new Error(`${PROXY_LOADER.name}: ${error.message} Use the HTML paste fallback below.`);
   }
 }
@@ -138,6 +186,7 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const url = urlInput.value.trim();
+  debugLog("form submit", { url });
 
   if (!url) {
     setStatus("Enter a Chess-Results page URL.", "error");
@@ -156,6 +205,10 @@ form.addEventListener("submit", async (event) => {
 
 parseButton.addEventListener("click", () => {
   const html = htmlInput.value.trim();
+  debugLog("parse button click", {
+    urlInput: urlInput.value.trim(),
+    htmlLength: html.length
+  });
   if (!html) {
     setStatus("Paste the full Chess-Results page HTML first.", "error");
     return;
@@ -176,6 +229,7 @@ parseButton.addEventListener("click", () => {
 });
 
 demoButton.addEventListener("click", () => {
+  debugLog("demo button click");
   htmlInput.value = DEMO_HTML;
   urlInput.value = DEMO_URL;
 
@@ -190,6 +244,7 @@ demoButton.addEventListener("click", () => {
 
 mobileReloadButton.addEventListener("click", async () => {
   const url = urlInput.value.trim();
+  debugLog("mobile reload click", { url });
 
   if (!url) {
     setStatus("Enter a Chess-Results page URL.", "error");
@@ -204,6 +259,7 @@ mobileReloadButton.addEventListener("click", async () => {
 });
 
 clearButton.addEventListener("click", () => {
+  debugLog("clear button click");
   writeQueryState(window.history, window.location.href, { url: "", parent: "" }, "push");
   clearView({ keepUrl: true });
   urlInput.value = "";
@@ -227,6 +283,11 @@ resultPanel.addEventListener("click", async (event) => {
     return;
   }
 
+  debugLog("result panel internal navigation", {
+    linkHref: link.href,
+    targetUrl,
+    currentSourceUrl: urlInput.value.trim()
+  });
   event.preventDefault();
   const currentSourceUrl = urlInput.value.trim();
   const parentUrl = isTournamentUrl(currentSourceUrl) ? currentSourceUrl : readQueryState(window.location.search).parent;
@@ -240,6 +301,7 @@ resultPanel.addEventListener("click", async (event) => {
 });
 
 const initialState = readQueryState(window.location.search);
+debugLog("initial query state", initialState);
 if (initialState.url) {
   urlInput.value = initialState.url;
   loadFromUrl(initialState.url, {
@@ -253,6 +315,7 @@ if (initialState.url) {
 
 window.addEventListener("popstate", () => {
   const queryState = readQueryState(window.location.search);
+  debugLog("popstate", queryState);
 
   if (!queryState.url) {
     clearView({ keepUrl: true });

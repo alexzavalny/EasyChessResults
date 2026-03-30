@@ -82,14 +82,15 @@ test("escapeHtml escapes all reserved characters used by rendering", () => {
 
 test("cleanHeaderLabel fills unnamed title column", () => {
   assert.equal(cleanHeaderLabel("", 3), "Title");
+  assert.equal(cleanHeaderLabel("", 1, { textContent: "MK" }), "Title");
   assert.equal(cleanHeaderLabel("", 0), "Col 1");
 });
 
 test("shouldKeepTournamentColumn filters known noise columns", () => {
-  assert.equal(shouldKeepTournamentColumn("FED", 6), false);
-  assert.equal(shouldKeepTournamentColumn("TB2", 7), false);
-  assert.equal(shouldKeepTournamentColumn("Name", 4), true);
-  assert.equal(shouldKeepTournamentColumn("Anything", 2), false);
+  assert.equal(shouldKeepTournamentColumn("FED"), false);
+  assert.equal(shouldKeepTournamentColumn("TB2"), false);
+  assert.equal(shouldKeepTournamentColumn("Name"), true);
+  assert.equal(shouldKeepTournamentColumn("Title"), true);
 });
 
 test("parseTournamentColumns keeps visible columns and aligns them", () => {
@@ -102,20 +103,50 @@ test("parseTournamentColumns keeps visible columns and aligns them", () => {
     { textContent: "Rtg", className: "CRr" },
     { textContent: "FED", className: "CR" }
   ];
+  const sampleRowCells = [
+    { textContent: "1", querySelector: () => null },
+    { textContent: "Alice", querySelector: () => null },
+    { textContent: "", querySelector: () => null },
+    { textContent: "II", querySelector: () => null },
+    { textContent: "3.5", querySelector: () => null },
+    { textContent: "1500", querySelector: () => null },
+    { textContent: "LAT", querySelector: () => null }
+  ];
 
-  const parsed = parseTournamentColumns(headerCells);
+  const parsed = parseTournamentColumns(headerCells, sampleRowCells);
 
-  assert.deepEqual(parsed.keptIndexes, [0, 1, 3, 4, 5]);
+  assert.deepEqual(parsed.keptIndexes, [0, 1, 2, 3, 4, 5]);
   assert.deepEqual(
     parsed.columns.map((column) => ({ label: column.label, align: column.align })),
     [
       { label: "Rk.", align: "center" },
       { label: "Name", align: "" },
+      { label: "SNo", align: "center" },
       { label: "Title", align: "" },
       { label: "Pts.", align: "center" },
       { label: "Rtg", align: "right" }
     ]
   );
+});
+
+test("parseTournamentColumns drops blank flag columns but keeps blank title columns", () => {
+  const headerCells = [
+    { textContent: "No.", className: "CRc" },
+    { textContent: "", className: "CR" },
+    { textContent: "", className: "CR" },
+    { textContent: "Name", className: "CR" }
+  ];
+  const sampleRowCells = [
+    { textContent: "1", querySelector: () => null },
+    { textContent: "", querySelector: (selector) => (selector === 'div[class*="tn_"]' ? {} : null) },
+    { textContent: "II", querySelector: () => null },
+    { textContent: "Player", querySelector: () => null }
+  ];
+
+  const parsed = parseTournamentColumns(headerCells, sampleRowCells);
+
+  assert.deepEqual(parsed.keptIndexes, [0, 2, 3]);
+  assert.deepEqual(parsed.columns.map((column) => column.label), ["No.", "Title", "Name"]);
 });
 
 test("isTournamentRankingDialog accepts 'Rank after Round' tournament tables", () => {
