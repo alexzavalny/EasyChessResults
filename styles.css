@@ -227,6 +227,7 @@ button.ghost {
   font-size: 0.9rem;
 }
 
+.fide-link,
 .original-link {
   display: inline-flex;
   align-items: center;
@@ -235,6 +236,34 @@ button.ghost {
   text-decoration: none;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.82rem;
+}
+
+.fide-link {
+  padding: 0.42rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(29, 71, 136, 0.18);
+  background: linear-gradient(135deg, #1d4788 0%, #315ea5 100%);
+  color: #f7fbff;
+  box-shadow: 0 10px 24px rgba(29, 71, 136, 0.18);
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.fide-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(29, 71, 136, 0.24);
+  filter: saturate(1.05);
+}
+
+.fide-link::before {
+  content: "F";
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+  font-size: 0.78rem;
 }
 
 .original-link::before {

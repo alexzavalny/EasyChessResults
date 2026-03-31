@@ -10,6 +10,7 @@ const resultPanel = document.querySelector("#result-panel");
 const resultKindNode = document.querySelector("#result-kind");
 const resultTitleNode = document.querySelector("#result-title");
 const backLinkNode = document.querySelector("#back-link");
+const fideLinkNode = document.querySelector("#fide-link");
 const originalLinkNode = document.querySelector("#original-link");
 const resultSubtitleNode = document.querySelector("#result-subtitle");
 const resultMetaNode = document.querySelector("#result-meta");
@@ -48,6 +49,11 @@ function updateOriginalLink(url = "") {
   originalLinkNode.hidden = !url;
 }
 
+function updateFideLink(url = "") {
+  fideLinkNode.href = url || "#";
+  fideLinkNode.hidden = !url;
+}
+
 function clearView({ keepUrl = false } = {}) {
   debugLog("clearView", { keepUrl });
   resultPanel.hidden = true;
@@ -60,6 +66,7 @@ function clearView({ keepUrl = false } = {}) {
   resultTitleNode.textContent = "-";
   backLinkNode.hidden = true;
   backLinkNode.href = "#";
+  updateFideLink("");
   updateOriginalLink(keepUrl ? readQueryState(window.location.search).url : "");
   resultSubtitleNode.textContent = "";
   resultSubtitleNode.hidden = true;
@@ -86,6 +93,7 @@ function renderResult(view) {
   });
   resultKindNode.textContent = view.label;
   resultTitleNode.textContent = view.title;
+  updateFideLink(view.fideUrl || "");
   updateOriginalLink(sourceUrl);
 
   if (view.kind === "player" && view.backUrl) {

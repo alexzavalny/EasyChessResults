@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   attachPlayerNavigation,
+  buildFideProfileUrl,
   buildInternalPageUrl,
   chip,
   cleanHeaderLabel,
@@ -19,6 +20,12 @@ const {
   shouldKeepTournamentColumn,
   writeQueryState
 } = require("../lib/chess-results.js");
+
+test("buildFideProfileUrl normalizes numeric ids", () => {
+  assert.equal(buildFideProfileUrl("11655682"), "https://ratings.fide.com/profile/11655682");
+  assert.equal(buildFideProfileUrl("Fide-ID: 11 655 682"), "https://ratings.fide.com/profile/11655682");
+  assert.equal(buildFideProfileUrl(""), "");
+});
 
 test("readQueryState returns url and parent from search params", () => {
   assert.deepEqual(readQueryState("?url=https%3A%2F%2Fa.test%2Fone&parent=https%3A%2F%2Fa.test%2Ftwo"), {
