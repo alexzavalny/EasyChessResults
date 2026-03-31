@@ -8,6 +8,7 @@ const {
   cleanHeaderLabel,
   createAppUrl,
   escapeHtml,
+  highlightPlayerName,
   isTournamentRankingDialog,
   normalizeSupportedUrl,
   parseTournamentColumns,
@@ -78,6 +79,11 @@ test("chip escapes label and value", () => {
 
 test("escapeHtml escapes all reserved characters used by rendering", () => {
   assert.equal(escapeHtml(`<&>"'`), "&lt;&amp;&gt;&quot;&#39;");
+});
+
+test("highlightPlayerName surrounds matching names with stars", () => {
+  assert.equal(highlightPlayerName("Zavalnijs, Grigorijs"), "⭐ Zavalnijs, Grigorijs ⭐");
+  assert.equal(highlightPlayerName("Vanaga, Patricija"), "Vanaga, Patricija");
 });
 
 test("cleanHeaderLabel fills unnamed title column", () => {
@@ -242,7 +248,7 @@ test("renderMobileRows links title and escapes text content", () => {
           topLeft: "Rank 1",
           topRight: '2 <pts>',
           topRightColor: "black",
-          title: "Alice & Bob",
+          title: "⭐ Zavalnijs, Grigorijs ⭐",
           titleHref: "https://chess-results.com/player",
           parentUrl: "https://chess-results.com/tournament",
           details: ["1500 · Club", "Title II"]
@@ -252,7 +258,7 @@ test("renderMobileRows links title and escapes text content", () => {
     "https://app.test/index.html"
   );
 
-  assert.match(html, /Alice &amp; Bob/);
+  assert.match(html, /⭐ Zavalnijs, Grigorijs ⭐/);
   assert.match(html, /2 &lt;pts&gt;/);
   assert.match(html, /aria-label="Black"/);
   assert.match(html, /parent=https%3A%2F%2Fchess-results.com%2Ftournament/);

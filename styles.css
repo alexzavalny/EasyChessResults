@@ -205,11 +205,17 @@ button.ghost {
   gap: 0.75rem;
 }
 
+.result-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 0.65rem;
+}
+
 .back-link {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  margin-top: 0.65rem;
   color: var(--accent-dark);
   text-decoration: none;
   font-family: "IBM Plex Mono", monospace;
@@ -218,6 +224,21 @@ button.ghost {
 
 .back-link::before {
   content: "↩";
+  font-size: 0.9rem;
+}
+
+.original-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent-dark);
+  text-decoration: none;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.original-link::before {
+  content: "↗";
   font-size: 0.9rem;
 }
 

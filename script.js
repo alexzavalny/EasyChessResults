@@ -10,6 +10,7 @@ const resultPanel = document.querySelector("#result-panel");
 const resultKindNode = document.querySelector("#result-kind");
 const resultTitleNode = document.querySelector("#result-title");
 const backLinkNode = document.querySelector("#back-link");
+const originalLinkNode = document.querySelector("#original-link");
 const resultSubtitleNode = document.querySelector("#result-subtitle");
 const resultMetaNode = document.querySelector("#result-meta");
 const resultsHeadNode = document.querySelector("#results-head");
@@ -42,6 +43,11 @@ function setStatus(message, tone = "") {
   statusNode.className = `status ${tone}`.trim();
 }
 
+function updateOriginalLink(url = "") {
+  originalLinkNode.href = url || "#";
+  originalLinkNode.hidden = !url;
+}
+
 function clearView({ keepUrl = false } = {}) {
   debugLog("clearView", { keepUrl });
   resultPanel.hidden = true;
@@ -54,6 +60,7 @@ function clearView({ keepUrl = false } = {}) {
   resultTitleNode.textContent = "-";
   backLinkNode.hidden = true;
   backLinkNode.href = "#";
+  updateOriginalLink(keepUrl ? readQueryState(window.location.search).url : "");
   resultSubtitleNode.textContent = "";
   resultSubtitleNode.hidden = true;
   resultMetaNode.innerHTML = "";
@@ -67,6 +74,7 @@ function clearView({ keepUrl = false } = {}) {
 }
 
 function renderResult(view) {
+  const sourceUrl = readQueryState(window.location.search).url;
   debugLog("renderResult", {
     kind: view.kind,
     title: view.title,
@@ -78,6 +86,7 @@ function renderResult(view) {
   });
   resultKindNode.textContent = view.label;
   resultTitleNode.textContent = view.title;
+  updateOriginalLink(sourceUrl);
 
   if (view.kind === "player" && view.backUrl) {
     backLinkNode.href = buildInternalPageUrl(window.location.href, view.backUrl);
@@ -157,13 +166,14 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
     }
 
     const parsed = parseAndPrepareView(html, normalizedUrl, normalizedParentUrl);
-    renderResult(parsed);
     writeQueryState(
       window.history,
       window.location.href,
       { url: normalizedUrl, parent: parsed.backUrl || "" },
       historyMode
     );
+    renderResult(parsed);
+    updateOriginalLink(normalizedUrl);
     setStatus(
       wasNormalized
         ? `Loaded ${parsed.rows.length} rows. Converted unsupported art=0 link to ranking view (art=1).`
@@ -216,12 +226,17 @@ parseButton.addEventListener("click", () => {
 
   try {
     const queryState = readQueryState(window.location.search);
+    const sourceUrl = normalizeSupportedUrl(urlInput.value.trim()) || normalizeSupportedUrl(queryState.url);
     const parsed = parseAndPrepareView(
       html,
-      normalizeSupportedUrl(urlInput.value.trim()),
+      sourceUrl,
       normalizeSupportedUrl(queryState.parent)
     );
+    if (sourceUrl) {
+      writeQueryState(window.history, window.location.href, { url: sourceUrl, parent: parsed.backUrl || "" });
+    }
     renderResult(parsed);
+    updateOriginalLink(sourceUrl);
     setStatus(`Parsed ${parsed.rows.length} rows from pasted HTML.`, "success");
   } catch (error) {
     setStatus(error.message, "error");
@@ -235,7 +250,9 @@ demoButton.addEventListener("click", () => {
 
   try {
     const parsed = parseChessResultsPage(DEMO_HTML, DEMO_URL);
+    writeQueryState(window.history, window.location.href, { url: DEMO_URL, parent: parsed.backUrl || "" }, "push");
     renderResult(parsed);
+    updateOriginalLink(DEMO_URL);
     setStatus(`Loaded demo data for ${parsed.title}.`, "success");
   } catch (error) {
     setStatus(error.message, "error");
@@ -304,6 +321,7 @@ const initialState = readQueryState(window.location.search);
 debugLog("initial query state", initialState);
 if (initialState.url) {
   urlInput.value = initialState.url;
+  updateOriginalLink(initialState.url);
   loadFromUrl(initialState.url, {
     historyMode: "replace",
     parentUrl: initialState.parent
@@ -326,6 +344,7 @@ window.addEventListener("popstate", () => {
   }
 
   urlInput.value = queryState.url;
+  updateOriginalLink(queryState.url);
   loadFromUrl(queryState.url, { historyMode: "replace", parentUrl: queryState.parent }).catch((error) => {
     clearView({ keepUrl: true });
     setStatus(error.message, "error");
