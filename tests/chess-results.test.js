@@ -12,6 +12,7 @@ const {
   highlightPlayerName,
   isTournamentRankingDialog,
   normalizeSupportedUrl,
+  parsePlayerPage,
   parseTournamentColumns,
   readQueryState,
   renderCellContent,
@@ -269,4 +270,44 @@ test("renderMobileRows links title and escapes text content", () => {
   assert.match(html, /2 &lt;pts&gt;/);
   assert.match(html, /aria-label="Black"/);
   assert.match(html, /parent=https%3A%2F%2Fchess-results.com%2Ftournament/);
+});
+
+test("parsePlayerPage keeps player header info when opponents table is missing", () => {
+  const makeCell = (text) => ({ textContent: text });
+  const makeRow = (label, value) => ({
+    querySelectorAll: (selector) => (selector === "td" ? [makeCell(label), makeCell(value)] : [])
+  });
+  const infoTable = {
+    querySelectorAll: (selector) =>
+      selector === "tr"
+        ? [
+            makeRow("Name", "Test Player"),
+            makeRow("Title", "FM"),
+            makeRow("Rank", "12"),
+            makeRow("Points", "0"),
+            makeRow("Federation", "LAT"),
+            makeRow("Club/City", "Riga"),
+            makeRow("Fide-ID", "12345678")
+          ]
+        : []
+  };
+  const playerDialog = {
+    querySelector: (selector) => (selector === "h2" ? { textContent: "Player info" } : null),
+    querySelectorAll: (selector) => (selector === "table" ? [infoTable] : [])
+  };
+  const doc = {
+    querySelectorAll: (selector) => (selector === ".defaultDialog" ? [playerDialog] : [])
+  };
+
+  const parsed = parsePlayerPage(doc, "https://chess-results.com/tnr1.aspx?art=9&snr=21");
+
+  assert.equal(parsed.kind, "player");
+  assert.equal(parsed.title, "Test Player");
+  assert.equal(parsed.rows.length, 0);
+  assert.deepEqual(parsed.columns.map((column) => column.label), ["Rd", "Bo", "Title", "Name", "Rtg", "Club", "Pts", "Clr", "Res"]);
+  assert.equal(parsed.fideUrl, "https://ratings.fide.com/profile/12345678");
+  assert.deepEqual(
+    parsed.chips.map((entry) => `${entry.label}:${entry.value}`),
+    ["Title:FM", "Rank:12", "Points:0", "FED:LAT", "Club:Riga"]
+  );
 });
