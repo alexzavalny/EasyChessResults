@@ -10,6 +10,7 @@ const resultPanel = document.querySelector("#result-panel");
 const resultKindNode = document.querySelector("#result-kind");
 const resultTitleNode = document.querySelector("#result-title");
 const backLinkNode = document.querySelector("#back-link");
+const bookmarkButtonNode = document.querySelector("#bookmark-button");
 const fideLinkNode = document.querySelector("#fide-link");
 const originalLinkNode = document.querySelector("#original-link");
 const resultSubtitleNode = document.querySelector("#result-subtitle");
@@ -29,14 +30,19 @@ const {
   chip,
   debugLog,
   isTournamentUrl,
+  normalizeFideId,
   normalizeSupportedUrl,
   parseChessResultsPage,
+  prependBookmarkMarker,
   readQueryState,
   renderMobileRows,
   renderTableHead,
   renderTableRows,
   writeQueryState
 } = window.ChessResults;
+
+const BOOKMARK_STORAGE_KEY = "easy-chess-results:bookmarked-players";
+let currentView = null;
 
 function setStatus(message, tone = "") {
   debugLog("setStatus", { message, tone });
@@ -54,8 +60,91 @@ function updateFideLink(url = "") {
   fideLinkNode.hidden = !url;
 }
 
+function readBookmarks() {
+  if (!window.localStorage) {
+    return {};
+  }
+
+  try {
+    const raw = window.localStorage.getItem(BOOKMARK_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeBookmarks(bookmarks) {
+  if (!window.localStorage) {
+    return;
+  }
+
+  window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(bookmarks));
+}
+
+function normalizeBookmarkName(name = "") {
+  return String(name || "").replace(/^(🔖|⭐)\s+/g, "").trim();
+}
+
+function updateBookmarkButton(view = null) {
+  const fideId = normalizeFideId(view?.fideId || "");
+  if (view?.kind !== "player" || !fideId) {
+    bookmarkButtonNode.hidden = true;
+    bookmarkButtonNode.textContent = "Bookmark";
+    bookmarkButtonNode.dataset.fideId = "";
+    bookmarkButtonNode.dataset.playerName = "";
+    return;
+  }
+
+  const bookmarked = Boolean(readBookmarks()[fideId]);
+  bookmarkButtonNode.hidden = false;
+  bookmarkButtonNode.textContent = bookmarked ? "Bookmarked" : "Bookmark";
+  bookmarkButtonNode.dataset.fideId = fideId;
+  bookmarkButtonNode.dataset.playerName = normalizeBookmarkName(view.title);
+}
+
+function decorateViewWithBookmarks(view) {
+  if (!view || view.kind !== "tournament") {
+    return view;
+  }
+
+  const bookmarkedNames = new Set(
+    Object.values(readBookmarks())
+      .map((entry) => normalizeBookmarkName(entry?.name || ""))
+      .filter(Boolean)
+  );
+
+  if (!bookmarkedNames.size) {
+    return view;
+  }
+
+  return {
+    ...view,
+    rows: view.rows.map((row) => {
+      const updatedCells = row.cells.map((cell, index) => {
+        if (index !== 1) {
+          return cell;
+        }
+
+        const plainName = normalizeBookmarkName(cell.text);
+        return bookmarkedNames.has(plainName) ? { ...cell, text: prependBookmarkMarker(cell.text, true) } : cell;
+      });
+      const plainMobileTitle = normalizeBookmarkName(row.mobile.title);
+      return {
+        ...row,
+        cells: updatedCells,
+        mobile: {
+          ...row.mobile,
+          title: bookmarkedNames.has(plainMobileTitle) ? prependBookmarkMarker(row.mobile.title, true) : row.mobile.title
+        }
+      };
+    })
+  };
+}
+
 function clearView({ keepUrl = false } = {}) {
   debugLog("clearView", { keepUrl });
+  currentView = null;
   resultPanel.hidden = true;
   mobileListNode.hidden = true;
   mobileReloadButton.hidden = true;
@@ -66,6 +155,7 @@ function clearView({ keepUrl = false } = {}) {
   resultTitleNode.textContent = "-";
   backLinkNode.hidden = true;
   backLinkNode.href = "#";
+  updateBookmarkButton(null);
   updateFideLink("");
   updateOriginalLink(keepUrl ? readQueryState(window.location.search).url : "");
   resultSubtitleNode.textContent = "";
@@ -82,34 +172,37 @@ function clearView({ keepUrl = false } = {}) {
 
 function renderResult(view) {
   const sourceUrl = readQueryState(window.location.search).url;
+  const decoratedView = decorateViewWithBookmarks(view);
+  currentView = view;
   debugLog("renderResult", {
-    kind: view.kind,
-    title: view.title,
-    subtitle: view.subtitle,
-    chips: view.chips.length,
-    columns: view.columns.map((column) => column.label),
-    rows: view.rows.length,
-    backUrl: view.backUrl
+    kind: decoratedView.kind,
+    title: decoratedView.title,
+    subtitle: decoratedView.subtitle,
+    chips: decoratedView.chips.length,
+    columns: decoratedView.columns.map((column) => column.label),
+    rows: decoratedView.rows.length,
+    backUrl: decoratedView.backUrl
   });
-  resultKindNode.textContent = view.label;
-  resultTitleNode.textContent = view.title;
-  updateFideLink(view.fideUrl || "");
+  resultKindNode.textContent = decoratedView.label;
+  resultTitleNode.textContent = decoratedView.title;
+  updateBookmarkButton(view);
+  updateFideLink(decoratedView.fideUrl || "");
   updateOriginalLink(sourceUrl);
 
-  if (view.kind === "player" && view.backUrl) {
-    backLinkNode.href = buildInternalPageUrl(window.location.href, view.backUrl);
+  if (decoratedView.kind === "player" && decoratedView.backUrl) {
+    backLinkNode.href = buildInternalPageUrl(window.location.href, decoratedView.backUrl);
     backLinkNode.hidden = false;
   } else {
     backLinkNode.href = "#";
     backLinkNode.hidden = true;
   }
 
-  resultSubtitleNode.textContent = view.subtitle || "";
-  resultSubtitleNode.hidden = !view.subtitle;
-  resultMetaNode.innerHTML = view.chips.map((entry) => chip(entry.label, entry.value)).join("");
-  resultsHeadNode.innerHTML = renderTableHead(view.columns);
-  resultsBodyNode.innerHTML = renderTableRows(view.rows, window.location.href);
-  mobileListNode.innerHTML = renderMobileRows(view.rows, window.location.href);
+  resultSubtitleNode.textContent = decoratedView.subtitle || "";
+  resultSubtitleNode.hidden = !decoratedView.subtitle;
+  resultMetaNode.innerHTML = decoratedView.chips.map((entry) => chip(entry.label, entry.value)).join("");
+  resultsHeadNode.innerHTML = renderTableHead(decoratedView.columns);
+  resultsBodyNode.innerHTML = renderTableRows(decoratedView.rows, window.location.href);
+  mobileListNode.innerHTML = renderMobileRows(decoratedView.rows, window.location.href);
 
   resultPanel.hidden = false;
   mobileListNode.hidden = false;
@@ -118,6 +211,34 @@ function renderResult(view) {
   controlsPanel.hidden = true;
   heroSection.hidden = true;
 }
+
+bookmarkButtonNode.addEventListener("click", () => {
+  const fideId = normalizeFideId(bookmarkButtonNode.dataset.fideId);
+  const playerName = normalizeBookmarkName(bookmarkButtonNode.dataset.playerName);
+  if (!fideId) {
+    return;
+  }
+
+  const bookmarks = readBookmarks();
+  if (bookmarks[fideId]) {
+    delete bookmarks[fideId];
+    writeBookmarks(bookmarks);
+    updateBookmarkButton(currentView);
+    if (currentView) {
+      renderResult(currentView);
+    }
+    setStatus(`Removed bookmark for ${playerName || "player"}.`, "success");
+    return;
+  }
+
+  bookmarks[fideId] = { fideId, name: playerName };
+  writeBookmarks(bookmarks);
+  updateBookmarkButton(currentView);
+  if (currentView) {
+    renderResult(currentView);
+  }
+  setStatus(`Bookmarked ${playerName || "player"}.`, "success");
+});
 
 function parseAndPrepareView(html, sourceUrl, parentUrl = "") {
   debugLog("parseAndPrepareView:start", { sourceUrl, parentUrl, htmlLength: html.length });

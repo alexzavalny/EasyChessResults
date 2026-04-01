@@ -11,9 +11,11 @@ const {
   escapeHtml,
   highlightPlayerName,
   isTournamentRankingDialog,
+  normalizeFideId,
   normalizeSupportedUrl,
   parsePlayerPage,
   parseTournamentColumns,
+  prependBookmarkMarker,
   readQueryState,
   renderCellContent,
   renderColorMarker,
@@ -26,6 +28,11 @@ test("buildFideProfileUrl normalizes numeric ids", () => {
   assert.equal(buildFideProfileUrl("11655682"), "https://ratings.fide.com/profile/11655682");
   assert.equal(buildFideProfileUrl("Fide-ID: 11 655 682"), "https://ratings.fide.com/profile/11655682");
   assert.equal(buildFideProfileUrl(""), "");
+});
+
+test("normalizeFideId strips non-digits", () => {
+  assert.equal(normalizeFideId("Fide-ID: 11 655 682"), "11655682");
+  assert.equal(normalizeFideId(""), "");
 });
 
 test("readQueryState returns url and parent from search params", () => {
@@ -89,9 +96,15 @@ test("escapeHtml escapes all reserved characters used by rendering", () => {
   assert.equal(escapeHtml(`<&>"'`), "&lt;&amp;&gt;&quot;&#39;");
 });
 
-test("highlightPlayerName surrounds matching names with stars", () => {
-  assert.equal(highlightPlayerName("Zavalnijs, Grigorijs"), "⭐ Zavalnijs, Grigorijs ⭐");
+test("highlightPlayerName prepends a star for matching names", () => {
+  assert.equal(highlightPlayerName("Zavalnijs, Grigorijs"), "⭐ Zavalnijs, Grigorijs");
   assert.equal(highlightPlayerName("Vanaga, Patricija"), "Vanaga, Patricija");
+});
+
+test("prependBookmarkMarker prepends bookmark once", () => {
+  assert.equal(prependBookmarkMarker("Alice", true), "🔖 Alice");
+  assert.equal(prependBookmarkMarker("🔖 Alice", true), "🔖 Alice");
+  assert.equal(prependBookmarkMarker("Alice", false), "Alice");
 });
 
 test("cleanHeaderLabel fills unnamed title column", () => {
@@ -256,7 +269,7 @@ test("renderMobileRows links title and escapes text content", () => {
           topLeft: "Rank 1",
           topRight: '2 <pts>',
           topRightColor: "black",
-          title: "⭐ Zavalnijs, Grigorijs ⭐",
+          title: "⭐ Zavalnijs, Grigorijs",
           titleHref: "https://chess-results.com/player",
           parentUrl: "https://chess-results.com/tournament",
           details: ["1500 · Club", "Title II"]
@@ -266,7 +279,7 @@ test("renderMobileRows links title and escapes text content", () => {
     "https://app.test/index.html"
   );
 
-  assert.match(html, /⭐ Zavalnijs, Grigorijs ⭐/);
+  assert.match(html, /⭐ Zavalnijs, Grigorijs/);
   assert.match(html, /2 &lt;pts&gt;/);
   assert.match(html, /aria-label="Black"/);
   assert.match(html, /parent=https%3A%2F%2Fchess-results.com%2Ftournament/);
@@ -305,6 +318,7 @@ test("parsePlayerPage keeps player header info when opponents table is missing",
   assert.equal(parsed.title, "Test Player");
   assert.equal(parsed.rows.length, 0);
   assert.deepEqual(parsed.columns.map((column) => column.label), ["Rd", "Bo", "Title", "Name", "Rtg", "Club", "Pts", "Clr", "Res"]);
+  assert.equal(parsed.fideId, "12345678");
   assert.equal(parsed.fideUrl, "https://ratings.fide.com/profile/12345678");
   assert.deepEqual(
     parsed.chips.map((entry) => `${entry.label}:${entry.value}`),
