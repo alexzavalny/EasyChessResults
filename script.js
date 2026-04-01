@@ -110,13 +110,15 @@ function decorateViewWithBookmarks(view) {
     return view;
   }
 
+  const bookmarks = readBookmarks();
   const bookmarkedNames = new Set(
-    Object.values(readBookmarks())
-      .map((entry) => normalizeBookmarkName(entry?.name || ""))
+    Object.entries(bookmarks)
+      .flatMap(([key, entry]) => [normalizeBookmarkName(key), normalizeBookmarkName(entry?.name || "")])
       .filter(Boolean)
   );
+  const nameColumnIndex = view.columns.findIndex((column) => column.label === "Name");
 
-  if (!bookmarkedNames.size) {
+  if (!bookmarkedNames.size || nameColumnIndex === -1) {
     return view;
   }
 
@@ -124,7 +126,7 @@ function decorateViewWithBookmarks(view) {
     ...view,
     rows: view.rows.map((row) => {
       const updatedCells = row.cells.map((cell, index) => {
-        if (index !== 1) {
+        if (index !== nameColumnIndex) {
           return cell;
         }
 
