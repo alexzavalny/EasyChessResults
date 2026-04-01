@@ -87,20 +87,22 @@ function normalizeBookmarkName(name = "") {
 }
 
 function updateBookmarkButton(view = null) {
-  const fideId = normalizeFideId(view?.fideId || "");
-  if (view?.kind !== "player" || !fideId) {
+  const playerName = normalizeBookmarkName(view?.title || "");
+  if (view?.kind !== "player" || !playerName) {
     bookmarkButtonNode.hidden = true;
     bookmarkButtonNode.textContent = "Bookmark";
-    bookmarkButtonNode.dataset.fideId = "";
+    bookmarkButtonNode.dataset.bookmarkKey = "";
     bookmarkButtonNode.dataset.playerName = "";
+    bookmarkButtonNode.dataset.fideId = "";
     return;
   }
 
-  const bookmarked = Boolean(readBookmarks()[fideId]);
+  const bookmarked = Boolean(readBookmarks()[playerName]);
   bookmarkButtonNode.hidden = false;
   bookmarkButtonNode.textContent = bookmarked ? "Bookmarked" : "Bookmark";
-  bookmarkButtonNode.dataset.fideId = fideId;
-  bookmarkButtonNode.dataset.playerName = normalizeBookmarkName(view.title);
+  bookmarkButtonNode.dataset.bookmarkKey = playerName;
+  bookmarkButtonNode.dataset.playerName = playerName;
+  bookmarkButtonNode.dataset.fideId = normalizeFideId(view.fideId || "");
 }
 
 function decorateViewWithBookmarks(view) {
@@ -213,15 +215,16 @@ function renderResult(view) {
 }
 
 bookmarkButtonNode.addEventListener("click", () => {
-  const fideId = normalizeFideId(bookmarkButtonNode.dataset.fideId);
+  const bookmarkKey = normalizeBookmarkName(bookmarkButtonNode.dataset.bookmarkKey);
   const playerName = normalizeBookmarkName(bookmarkButtonNode.dataset.playerName);
-  if (!fideId) {
+  const fideId = normalizeFideId(bookmarkButtonNode.dataset.fideId);
+  if (!bookmarkKey) {
     return;
   }
 
   const bookmarks = readBookmarks();
-  if (bookmarks[fideId]) {
-    delete bookmarks[fideId];
+  if (bookmarks[bookmarkKey]) {
+    delete bookmarks[bookmarkKey];
     writeBookmarks(bookmarks);
     updateBookmarkButton(currentView);
     if (currentView) {
@@ -231,7 +234,7 @@ bookmarkButtonNode.addEventListener("click", () => {
     return;
   }
 
-  bookmarks[fideId] = { fideId, name: playerName };
+  bookmarks[bookmarkKey] = { name: playerName, fideId };
   writeBookmarks(bookmarks);
   updateBookmarkButton(currentView);
   if (currentView) {
