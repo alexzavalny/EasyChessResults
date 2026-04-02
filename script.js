@@ -15,6 +15,8 @@ const fideLinkNode = document.querySelector("#fide-link");
 const originalLinkNode = document.querySelector("#original-link");
 const resultSubtitleNode = document.querySelector("#result-subtitle");
 const resultMetaNode = document.querySelector("#result-meta");
+const typeFilterWrapNode = document.querySelector("#type-filter-wrap");
+const typeFilterSelectNode = document.querySelector("#type-filter-select");
 const resultsHeadNode = document.querySelector("#results-head");
 const resultsBodyNode = document.querySelector("#results-body");
 const mobileListNode = document.querySelector("#mobile-list");
@@ -28,7 +30,11 @@ const {
   attachPlayerNavigation,
   buildInternalPageUrl,
   chip,
+  collectUniqueColumnValues,
   debugLog,
+  escapeHtml,
+  filterRowsByColumnValue,
+  findColumnIndex,
   isTournamentUrl,
   normalizeFideId,
   normalizeSupportedUrl,
@@ -43,6 +49,7 @@ const {
 
 const BOOKMARK_STORAGE_KEY = "easy-chess-results:bookmarked-players";
 let currentView = null;
+let currentTypeFilter = "";
 
 function setStatus(message, tone = "") {
   debugLog("setStatus", { message, tone });
@@ -149,6 +156,7 @@ function decorateViewWithBookmarks(view) {
 function clearView({ keepUrl = false } = {}) {
   debugLog("clearView", { keepUrl });
   currentView = null;
+  currentTypeFilter = "";
   resultPanel.hidden = true;
   mobileListNode.hidden = true;
   mobileReloadButton.hidden = true;
@@ -164,6 +172,8 @@ function clearView({ keepUrl = false } = {}) {
   updateOriginalLink(keepUrl ? readQueryState(window.location.search).url : "");
   resultSubtitleNode.textContent = "";
   resultSubtitleNode.hidden = true;
+  typeFilterWrapNode.hidden = true;
+  typeFilterSelectNode.innerHTML = "";
   resultMetaNode.innerHTML = "";
   resultsHeadNode.innerHTML = "";
   resultsBodyNode.innerHTML = "";
@@ -174,10 +184,55 @@ function clearView({ keepUrl = false } = {}) {
   }
 }
 
+function getTypeFilterOptions(view) {
+  if (!view || view.kind !== "tournament") {
+    return { columnIndex: -1, values: [] };
+  }
+
+  const columnIndex = findColumnIndex(view.columns, "Typ");
+  return {
+    columnIndex,
+    values: collectUniqueColumnValues(view.rows, columnIndex)
+  };
+}
+
+function normalizeTypeFilter(view) {
+  const { values } = getTypeFilterOptions(view);
+  if (!values.includes(currentTypeFilter)) {
+    currentTypeFilter = "";
+  }
+}
+
+function renderTypeFilter(view) {
+  const { columnIndex, values } = getTypeFilterOptions(view);
+
+  if (columnIndex === -1 || values.length === 0) {
+    typeFilterWrapNode.hidden = true;
+    typeFilterSelectNode.innerHTML = "";
+    return;
+  }
+
+  typeFilterWrapNode.hidden = false;
+  typeFilterSelectNode.innerHTML = [
+    '<option value="">All groups</option>',
+    ...values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+  ].join("");
+  typeFilterSelectNode.value = values.includes(currentTypeFilter) ? currentTypeFilter : "";
+}
+
 function renderResult(view) {
   const sourceUrl = readQueryState(window.location.search).url;
-  const decoratedView = decorateViewWithBookmarks(view);
   currentView = view;
+  normalizeTypeFilter(view);
+  const { columnIndex } = getTypeFilterOptions(view);
+  const filteredView =
+    view.kind === "tournament"
+      ? {
+          ...view,
+          rows: filterRowsByColumnValue(view.rows, columnIndex, currentTypeFilter)
+        }
+      : view;
+  const decoratedView = decorateViewWithBookmarks(filteredView);
   debugLog("renderResult", {
     kind: decoratedView.kind,
     title: decoratedView.title,
@@ -185,7 +240,8 @@ function renderResult(view) {
     chips: decoratedView.chips.length,
     columns: decoratedView.columns.map((column) => column.label),
     rows: decoratedView.rows.length,
-    backUrl: decoratedView.backUrl
+    backUrl: decoratedView.backUrl,
+    typeFilter: currentTypeFilter
   });
   resultKindNode.textContent = decoratedView.label;
   resultTitleNode.textContent = decoratedView.title;
@@ -203,6 +259,7 @@ function renderResult(view) {
 
   resultSubtitleNode.textContent = decoratedView.subtitle || "";
   resultSubtitleNode.hidden = !decoratedView.subtitle;
+  renderTypeFilter(view);
   resultMetaNode.innerHTML = decoratedView.chips.map((entry) => chip(entry.label, entry.value)).join("");
   resultsHeadNode.innerHTML = renderTableHead(decoratedView.columns);
   resultsBodyNode.innerHTML = renderTableRows(decoratedView.rows, window.location.href);
@@ -215,6 +272,13 @@ function renderResult(view) {
   controlsPanel.hidden = true;
   heroSection.hidden = true;
 }
+
+typeFilterSelectNode.addEventListener("change", () => {
+  currentTypeFilter = typeFilterSelectNode.value;
+  if (currentView) {
+    renderResult(currentView);
+  }
+});
 
 bookmarkButtonNode.addEventListener("click", () => {
   const bookmarkKey = normalizeBookmarkName(bookmarkButtonNode.dataset.bookmarkKey);

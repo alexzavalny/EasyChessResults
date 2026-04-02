@@ -199,6 +199,12 @@ button.ghost {
   align-items: end;
 }
 
+.result-side {
+  display: grid;
+  justify-items: end;
+  gap: 0.75rem;
+}
+
 .player-title-row {
   display: flex;
   align-items: center;
@@ -311,6 +317,7 @@ button.ghost {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  justify-content: flex-end;
 }
 
 .chips span {
@@ -319,6 +326,23 @@ button.ghost {
   background: rgba(191, 91, 50, 0.08);
   border: 1px solid rgba(191, 91, 50, 0.14);
   font-size: 0.8rem;
+}
+
+.type-filter {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.type-filter span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.type-filter select {
+  min-width: 9rem;
+  padding: 0.75rem 0.95rem;
 }
 
 .table-wrap {
@@ -465,6 +489,16 @@ a {
   .chips span {
     font-size: 0.74rem;
     padding: 0.45rem 0.6rem;
+  }
+
+  .result-side,
+  .type-filter {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .chips {
+    justify-content: flex-start;
   }
 
   h2 {

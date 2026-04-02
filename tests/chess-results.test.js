@@ -6,9 +6,12 @@ const {
   buildFideProfileUrl,
   buildInternalPageUrl,
   chip,
+  collectUniqueColumnValues,
   cleanHeaderLabel,
   createAppUrl,
   escapeHtml,
+  filterRowsByColumnValue,
+  findColumnIndex,
   highlightPlayerName,
   isTournamentRankingDialog,
   normalizeFideId,
@@ -174,6 +177,38 @@ test("parseTournamentColumns drops blank flag columns but keeps blank title colu
 
   assert.deepEqual(parsed.keptIndexes, [0, 2, 3]);
   assert.deepEqual(parsed.columns.map((column) => column.label), ["No.", "Title", "Name"]);
+});
+
+test("findColumnIndex returns matching column index", () => {
+  assert.equal(findColumnIndex([{ label: "Rk." }, { label: "Typ" }, { label: "Name" }], "Typ"), 1);
+  assert.equal(findColumnIndex([{ label: "Rk." }, { label: "Name" }], "Typ"), -1);
+});
+
+test("collectUniqueColumnValues returns distinct non-empty values in row order", () => {
+  const rows = [
+    { cells: [{ text: "1" }, { text: "U10" }] },
+    { cells: [{ text: "2" }, { text: "U08" }] },
+    { cells: [{ text: "3" }, { text: "U10" }] },
+    { cells: [{ text: "4" }, { text: " " }] }
+  ];
+
+  assert.deepEqual(collectUniqueColumnValues(rows, 1), ["U10", "U08"]);
+  assert.deepEqual(collectUniqueColumnValues(rows, -1), []);
+});
+
+test("filterRowsByColumnValue keeps only rows with matching cell text", () => {
+  const rows = [
+    { cells: [{ text: "1" }, { text: "U10" }] },
+    { cells: [{ text: "2" }, { text: "U08" }] },
+    { cells: [{ text: "3" }, { text: "U10" }] }
+  ];
+
+  assert.deepEqual(
+    filterRowsByColumnValue(rows, 1, "U10").map((row) => row.cells[0].text),
+    ["1", "3"]
+  );
+  assert.equal(filterRowsByColumnValue(rows, 1, "").length, 3);
+  assert.equal(filterRowsByColumnValue(rows, -1, "U10").length, 3);
 });
 
 test("isTournamentRankingDialog accepts 'Rank after Round' tournament tables", () => {
