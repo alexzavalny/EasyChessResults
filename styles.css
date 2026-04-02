@@ -199,7 +199,7 @@ button.ghost {
   align-items: end;
 }
 
-.result-side {
+.chips-wrap {
   display: grid;
   justify-items: end;
   gap: 0.75rem;
@@ -491,7 +491,7 @@ a {
     padding: 0.45rem 0.6rem;
   }
 
-  .result-side,
+  .chips-wrap,
   .type-filter {
     width: 100%;
     justify-items: stretch;
