@@ -328,6 +328,31 @@ button.ghost {
   font-size: 0.8rem;
 }
 
+.chip-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.chip-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(28, 35, 33, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--accent-dark);
+  text-decoration: none;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+}
+
+.chip-link:hover {
+  border-color: rgba(191, 91, 50, 0.3);
+  background: rgba(191, 91, 50, 0.08);
+}
+
 .type-filter {
   display: grid;
   gap: 0.35rem;
@@ -498,6 +523,10 @@ a {
   }
 
   .chips {
+    justify-content: flex-start;
+  }
+
+  .chip-links {
     justify-content: flex-start;
   }
 

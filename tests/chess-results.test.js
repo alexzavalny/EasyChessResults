@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   attachPlayerNavigation,
+  appendCacheBustParam,
   buildFideProfileUrl,
   buildInternalPageUrl,
   chip,
@@ -18,7 +19,9 @@ const {
   normalizeSupportedUrl,
   parsePlayerPage,
   parseTournamentColumns,
+  parseTournamentRoundLinks,
   prependBookmarkMarker,
+  PROXY_LOADER,
   readQueryState,
   renderCellContent,
   renderColorMarker,
@@ -71,6 +74,25 @@ test("normalizeSupportedUrl upgrades overview links from art=0 to art=1", () => 
   assert.equal(
     normalizeSupportedUrl("https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=9&snr=5"),
     "https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=9&snr=5"
+  );
+});
+
+test("appendCacheBustParam adds a timestamp without mutating invalid inputs", () => {
+  assert.equal(
+    appendCacheBustParam("https://chess-results.com/tnr1.aspx?art=1&lan=1", 1234567890),
+    "https://chess-results.com/tnr1.aspx?art=1&lan=1&_echr_ts=1234567890"
+  );
+  assert.equal(appendCacheBustParam("not-a-url", 1234567890), "not-a-url");
+  assert.equal(
+    appendCacheBustParam("https://chess-results.com/tnr1.aspx?art=1&lan=1"),
+    "https://chess-results.com/tnr1.aspx?art=1&lan=1"
+  );
+});
+
+test("PROXY_LOADER.buildUrl encodes the cache-busted source url", () => {
+  assert.equal(
+    PROXY_LOADER.buildUrl("https://chess-results.com/tnr1.aspx?art=1&lan=1", 1234567890),
+    "https://corsproxy.io/?url=https%3A%2F%2Fchess-results.com%2Ftnr1.aspx%3Fart%3D1%26lan%3D1%26_echr_ts%3D1234567890"
   );
 });
 
@@ -177,6 +199,37 @@ test("parseTournamentColumns drops blank flag columns but keeps blank title colu
 
   assert.deepEqual(parsed.keptIndexes, [0, 2, 3]);
   assert.deepEqual(parsed.columns.map((column) => column.label), ["No.", "Title", "Name"]);
+});
+
+test("parseTournamentRoundLinks keeps only ranking-after round links", () => {
+  const rankingContainer = {
+    textContent: "Ranking list after Rd.1 Rd.2 Rd.3",
+    parentElement: null
+  };
+  const pairingsContainer = {
+    textContent: "Board Pairings Rd.1 Rd.2 Rd.3",
+    parentElement: null
+  };
+  const makeAnchor = (text, href, parentElement) => ({
+    textContent: text,
+    getAttribute: (name) => (name === "href" ? href : null),
+    parentElement
+  });
+  const doc = {
+    querySelectorAll: (selector) =>
+      selector === "a"
+        ? [
+            makeAnchor("Rd.1", "/tnr1.aspx?art=1&rd=1", rankingContainer),
+            makeAnchor("Rd.2", "/tnr1.aspx?art=1&rd=2", rankingContainer),
+            makeAnchor("Rd.1", "/tnr1.aspx?art=2&rd=1", pairingsContainer)
+          ]
+        : []
+  };
+
+  assert.deepEqual(parseTournamentRoundLinks(doc, "https://chess-results.com/tnr1.aspx?lan=1"), [
+    { label: "Rd.1", href: "https://chess-results.com/tnr1.aspx?art=1&rd=1" },
+    { label: "Rd.2", href: "https://chess-results.com/tnr1.aspx?art=1&rd=2" }
+  ]);
 });
 
 test("findColumnIndex returns matching column index", () => {

@@ -15,6 +15,7 @@ const fideLinkNode = document.querySelector("#fide-link");
 const originalLinkNode = document.querySelector("#original-link");
 const resultSubtitleNode = document.querySelector("#result-subtitle");
 const resultMetaNode = document.querySelector("#result-meta");
+const resultMetaLinksNode = document.querySelector("#result-meta-links");
 const typeFilterWrapNode = document.querySelector("#type-filter-wrap");
 const typeFilterSelectNode = document.querySelector("#type-filter-select");
 const resultsHeadNode = document.querySelector("#results-head");
@@ -175,6 +176,8 @@ function clearView({ keepUrl = false } = {}) {
   typeFilterWrapNode.hidden = true;
   typeFilterSelectNode.innerHTML = "";
   resultMetaNode.innerHTML = "";
+  resultMetaLinksNode.innerHTML = "";
+  resultMetaLinksNode.hidden = true;
   resultsHeadNode.innerHTML = "";
   resultsBodyNode.innerHTML = "";
   mobileListNode.innerHTML = "";
@@ -261,6 +264,13 @@ function renderResult(view) {
   resultSubtitleNode.hidden = !decoratedView.subtitle;
   renderTypeFilter(view);
   resultMetaNode.innerHTML = decoratedView.chips.map((entry) => chip(entry.label, entry.value)).join("");
+  resultMetaLinksNode.innerHTML = (decoratedView.tournamentLinks || [])
+    .map(
+      (entry) =>
+        `<a class="chip-link" href="${escapeHtml(buildInternalPageUrl(window.location.href, entry.href))}">${escapeHtml(entry.label)}</a>`
+    )
+    .join("");
+  resultMetaLinksNode.hidden = !(decoratedView.tournamentLinks || []).length;
   resultsHeadNode.innerHTML = renderTableHead(decoratedView.columns);
   resultsBodyNode.innerHTML = renderTableRows(decoratedView.rows, window.location.href);
   mobileListNode.innerHTML = renderMobileRows(decoratedView.rows, window.location.href);
@@ -324,7 +334,8 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
   const normalizedUrl = normalizeSupportedUrl(url);
   const normalizedParentUrl = normalizeSupportedUrl(parentUrl);
   const wasNormalized = normalizedUrl !== url;
-  const proxyUrl = PROXY_LOADER.buildUrl(normalizedUrl);
+  const cacheBustToken = Date.now();
+  const proxyUrl = PROXY_LOADER.buildUrl(normalizedUrl, cacheBustToken);
 
   debugLog("loadFromUrl:start", {
     url,
@@ -332,6 +343,7 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
     parentUrl,
     normalizedParentUrl,
     historyMode,
+    cacheBustToken,
     proxyUrl
   });
 
@@ -342,7 +354,7 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
   );
 
   try {
-    const response = await fetch(proxyUrl);
+    const response = await fetch(proxyUrl, { cache: "no-store" });
     debugLog("loadFromUrl:response", {
       ok: response.ok,
       status: response.status,
