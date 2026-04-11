@@ -263,7 +263,7 @@ function renderResult(view) {
   resultSubtitleNode.textContent = decoratedView.subtitle || "";
   resultSubtitleNode.hidden = !decoratedView.subtitle;
   renderTypeFilter(view);
-  resultMetaNode.innerHTML = decoratedView.chips.map((entry) => chip(entry.label, entry.value)).join("");
+  resultMetaNode.innerHTML = decoratedView.chips.map((entry) => chip(entry.label, entry.value, entry)).join("");
   resultMetaLinksNode.innerHTML = (decoratedView.tournamentLinks || [])
     .map(
       (entry) =>

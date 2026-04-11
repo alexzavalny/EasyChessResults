@@ -320,12 +320,32 @@ button.ghost {
   justify-content: flex-end;
 }
 
-.chips span {
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.55rem 0.75rem;
   border-radius: 999px;
   background: rgba(191, 91, 50, 0.08);
   border: 1px solid rgba(191, 91, 50, 0.14);
   font-size: 0.8rem;
+}
+
+.chip-up {
+  background: rgba(33, 128, 87, 0.1);
+  border-color: rgba(33, 128, 87, 0.22);
+  color: #176745;
+}
+
+.chip-down {
+  background: rgba(183, 52, 52, 0.1);
+  border-color: rgba(183, 52, 52, 0.2);
+  color: #9c2727;
+}
+
+.chip-indicator {
+  font-size: 0.72rem;
+  line-height: 1;
 }
 
 .chip-links {

@@ -10,6 +10,7 @@ const {
   collectUniqueColumnValues,
   cleanHeaderLabel,
   createAppUrl,
+  detectTrendDirection,
   escapeHtml,
   filterRowsByColumnValue,
   findColumnIndex,
@@ -113,8 +114,21 @@ test("writeQueryState uses requested history mode", () => {
 });
 
 test("chip escapes label and value", () => {
-  assert.equal(chip("<Label>", '"quoted" & value'), "<span>&lt;Label&gt;: &quot;quoted&quot; &amp; value</span>");
+  assert.equal(
+    chip("<Label>", '"quoted" & value'),
+    '<span class="chip"><span>&lt;Label&gt;: &quot;quoted&quot; &amp; value</span></span>'
+  );
+  assert.equal(
+    chip("FIDE +/-", "-28,4", { direction: "down" }),
+    '<span class="chip chip-down"><span class="chip-indicator" aria-hidden="true">▼</span><span>FIDE +/-: -28,4</span></span>'
+  );
   assert.equal(chip("Empty", ""), "");
+});
+
+test("detectTrendDirection understands chess rating deltas", () => {
+  assert.equal(detectTrendDirection("-28,4"), "down");
+  assert.equal(detectTrendDirection("+12,1"), "up");
+  assert.equal(detectTrendDirection("0"), "");
 });
 
 test("escapeHtml escapes all reserved characters used by rendering", () => {
@@ -386,6 +400,7 @@ test("parsePlayerPage keeps player header info when opponents table is missing",
             makeRow("Title", "FM"),
             makeRow("Rank", "12"),
             makeRow("Points", "0"),
+            makeRow("FIDE rtg +/-", "-28,4"),
             makeRow("Federation", "LAT"),
             makeRow("Club/City", "Riga"),
             makeRow("Fide-ID", "12345678")
@@ -410,6 +425,7 @@ test("parsePlayerPage keeps player header info when opponents table is missing",
   assert.equal(parsed.fideUrl, "https://ratings.fide.com/profile/12345678");
   assert.deepEqual(
     parsed.chips.map((entry) => `${entry.label}:${entry.value}`),
-    ["Title:FM", "Rank:12", "Points:0", "FED:LAT", "Club:Riga"]
+    ["Title:FM", "Rank:12", "Points:0", "FIDE +/-:-28,4", "FED:LAT", "Club:Riga"]
   );
+  assert.equal(parsed.chips.find((entry) => entry.label === "FIDE +/-")?.direction, "down");
 });
