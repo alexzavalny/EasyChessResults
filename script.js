@@ -23,6 +23,7 @@ const resultsBodyNode = document.querySelector("#results-body");
 const mobileListNode = document.querySelector("#mobile-list");
 const mobileReloadButton = document.querySelector("#mobile-reload");
 const clearButton = document.querySelector("#clear-button");
+const DEFAULT_DOCUMENT_TITLE = document.title;
 
 const {
   DEMO_HTML,
@@ -66,6 +67,11 @@ function updateOriginalLink(url = "") {
 function updateFideLink(url = "") {
   fideLinkNode.href = url || "#";
   fideLinkNode.hidden = !url;
+}
+
+function updateDocumentTitle(view = null) {
+  const viewTitle = String(view?.title || "").trim();
+  document.title = viewTitle ? `${viewTitle} | ${DEFAULT_DOCUMENT_TITLE}` : DEFAULT_DOCUMENT_TITLE;
 }
 
 function readBookmarks() {
@@ -158,6 +164,7 @@ function clearView({ keepUrl = false } = {}) {
   debugLog("clearView", { keepUrl });
   currentView = null;
   currentTypeFilter = "";
+  updateDocumentTitle(null);
   resultPanel.hidden = true;
   mobileListNode.hidden = true;
   mobileReloadButton.hidden = true;
@@ -246,6 +253,7 @@ function renderResult(view) {
     backUrl: decoratedView.backUrl,
     typeFilter: currentTypeFilter
   });
+  updateDocumentTitle(decoratedView);
   resultKindNode.textContent = decoratedView.label;
   resultTitleNode.textContent = decoratedView.title;
   updateBookmarkButton(view);
