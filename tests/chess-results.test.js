@@ -429,3 +429,79 @@ test("parsePlayerPage keeps player header info when opponents table is missing",
   );
   assert.equal(parsed.chips.find((entry) => entry.label === "FIDE +/-")?.direction, "down");
 });
+
+test("parsePlayerPage supports opponent rows when club column is absent", () => {
+  const makeCell = (text, options = {}) => ({
+    textContent: text,
+    className: options.className || "",
+    querySelector: (selector) => {
+      if (selector === "a") {
+        return options.anchor || null;
+      }
+      if (selector === ".FarbewT") {
+        return options.color === "white" ? {} : null;
+      }
+      if (selector === ".FarbesT") {
+        return options.color === "black" ? {} : null;
+      }
+      return null;
+    }
+  });
+  const makeRow = (cells, isHeader = false) => ({
+    children: cells,
+    querySelector: (selector) => (selector === "th" && isHeader ? {} : null)
+  });
+  const makeInfoRow = (label, value) => ({
+    querySelectorAll: (selector) => (selector === "td" ? [makeCell(label), makeCell(value)] : [])
+  });
+
+  const infoTable = {
+    querySelectorAll: (selector) =>
+      selector === "tr"
+        ? [makeInfoRow("Name", "Haritonovs, Daniels"), makeInfoRow("Title", "II"), makeInfoRow("Points", "2")]
+        : []
+  };
+  const opponentsTable = {
+    querySelectorAll: (selector) =>
+      selector === "tr"
+        ? [
+            makeRow([], true),
+            makeRow([
+              makeCell("1", { className: "CRc" }),
+              makeCell("22", { className: "CRc" }),
+              makeCell("60", { className: "CRc" }),
+              makeCell("", { className: "CR" }),
+              makeCell("Cerkovskis, Alekss", {
+                className: "CR",
+                anchor: { getAttribute: (name) => (name === "href" ? "/tnr1375437.aspx?lan=1&art=9&fed=LAT&snr=60" : null) }
+              }),
+              makeCell("0", { className: "CRr" }),
+              makeCell("LAT", { className: "CR" }),
+              makeCell("0", { className: "CRc" }),
+              makeCell("1", { className: "CR", color: "white" })
+            ])
+          ]
+        : []
+  };
+  const playerDialog = {
+    querySelector: (selector) => (selector === "h2" ? { textContent: "Player info" } : null),
+    querySelectorAll: (selector) => (selector === "table" ? [infoTable, opponentsTable] : [])
+  };
+  const doc = {
+    querySelectorAll: (selector) => (selector === ".defaultDialog" ? [playerDialog] : [])
+  };
+
+  const parsed = parsePlayerPage(doc, "https://s2.chess-results.com/tnr1375437.aspx?lan=1&art=9&fed=LAT&snr=22&SNode=S0");
+
+  assert.equal(parsed.rows.length, 1);
+  assert.equal(parsed.rows[0].cells[3].text, "Cerkovskis, Alekss");
+  assert.equal(parsed.rows[0].cells[5].text, "");
+  assert.equal(parsed.rows[0].cells[6].text, "0");
+  assert.equal(parsed.rows[0].cells[7].raw, "white");
+  assert.equal(parsed.rows[0].cells[8].text, "1");
+  assert.equal(parsed.rows[0].mobile.details[1], "Club -");
+  assert.equal(
+    parsed.rows[0].cells[3].href,
+    "https://s2.chess-results.com/tnr1375437.aspx?lan=1&art=9&fed=LAT&snr=60"
+  );
+});
