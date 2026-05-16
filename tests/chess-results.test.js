@@ -15,6 +15,7 @@ const {
   filterRowsByColumnValue,
   findColumnIndex,
   highlightPlayerName,
+  inferTournamentUrlFromPlayerUrl,
   isTournamentRankingDialog,
   normalizeFideId,
   normalizeSupportedUrl,
@@ -76,6 +77,16 @@ test("normalizeSupportedUrl upgrades overview links from art=0 to art=1", () => 
     normalizeSupportedUrl("https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=9&snr=5"),
     "https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=9&snr=5"
   );
+});
+
+test("inferTournamentUrlFromPlayerUrl builds the tournament ranking URL without history state", () => {
+  assert.equal(
+    inferTournamentUrlFromPlayerUrl(
+      "https://s3.chess-results.com/tnr1359649.aspx?lan=1&art=9&fed=LAT&turdet=YES&flag=30&snr=61&SNode=S0&_echr_ts=123"
+    ),
+    "https://s3.chess-results.com/tnr1359649.aspx?lan=1&art=1&fed=LAT&turdet=YES&flag=30&SNode=S0"
+  );
+  assert.equal(inferTournamentUrlFromPlayerUrl("https://s3.chess-results.com/tnr1359649.aspx?lan=1&art=1"), "");
 });
 
 test("appendCacheBustParam adds a timestamp without mutating invalid inputs", () => {
@@ -343,6 +354,25 @@ test("attachPlayerNavigation adds back links to player rows only when parent exi
   assert.equal(updated.rows[0].mobile.parentUrl, "https://chess-results.com/tournament");
 });
 
+test("attachPlayerNavigation uses the parsed player backUrl when no history parent exists", () => {
+  const view = {
+    kind: "player",
+    backUrl: "https://chess-results.com/tnr1.aspx?art=1",
+    rows: [
+      {
+        cells: [{ text: "A", href: "https://chess-results.com/player" }],
+        mobile: { title: "Player", titleHref: "https://chess-results.com/player", details: [] }
+      }
+    ]
+  };
+
+  const updated = attachPlayerNavigation(view, "");
+
+  assert.equal(updated.backUrl, "https://chess-results.com/tnr1.aspx?art=1");
+  assert.equal(updated.rows[0].cells[0].parentUrl, "https://chess-results.com/tnr1.aspx?art=1");
+  assert.equal(updated.rows[0].mobile.parentUrl, "https://chess-results.com/tnr1.aspx?art=1");
+});
+
 test("renderColorMarker covers white, black, and empty cases", () => {
   assert.match(renderColorMarker("white"), /aria-label="White"/);
   assert.match(renderColorMarker("black"), /aria-label="Black"/);
@@ -420,6 +450,7 @@ test("parsePlayerPage keeps player header info when opponents table is missing",
   assert.equal(parsed.kind, "player");
   assert.equal(parsed.title, "Test Player");
   assert.equal(parsed.rows.length, 0);
+  assert.equal(parsed.backUrl, "https://chess-results.com/tnr1.aspx?art=1");
   assert.deepEqual(parsed.columns.map((column) => column.label), ["Rd", "Bo", "Title", "Name", "Rtg", "Club", "Pts", "Clr", "Res"]);
   assert.equal(parsed.fideId, "12345678");
   assert.equal(parsed.fideUrl, "https://ratings.fide.com/profile/12345678");
