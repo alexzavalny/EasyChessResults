@@ -200,9 +200,12 @@ button.ghost {
 }
 
 .chips-wrap {
-  display: grid;
-  justify-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
   gap: 0.75rem;
+  max-width: 44rem;
 }
 
 .player-title-row {
@@ -318,6 +321,7 @@ button.ghost {
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: flex-end;
+  flex: 1 1 28rem;
 }
 
 .chip {
@@ -374,20 +378,38 @@ button.ghost {
 }
 
 .type-filter {
-  display: grid;
-  gap: 0.35rem;
-  justify-items: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.3rem;
+  padding: 0.18rem 0.22rem 0.18rem 0.7rem;
+  border: 1px solid rgba(191, 91, 50, 0.14);
+  border-radius: 999px;
+  background: rgba(191, 91, 50, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .type-filter span {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-family: "IBM Plex Mono", monospace;
 }
 
 .type-filter select {
-  min-width: 9rem;
-  padding: 0.75rem 0.95rem;
+  min-width: 7.8rem;
+  padding: 0.46rem 2rem 0.46rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(28, 35, 33, 0.1);
+  background-color: rgba(255, 255, 255, 0.78);
+  color: var(--text);
+  font: 600 0.82rem "Manrope", sans-serif;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.type-filter select:focus {
+  outline: 2px solid rgba(191, 91, 50, 0.28);
+  outline-offset: 2px;
 }
 
 .table-wrap {
@@ -539,7 +561,14 @@ a {
   .chips-wrap,
   .type-filter {
     width: 100%;
-    justify-items: stretch;
+  }
+
+  .type-filter {
+    justify-content: space-between;
+  }
+
+  .type-filter select {
+    flex: 1;
   }
 
   .chips {
