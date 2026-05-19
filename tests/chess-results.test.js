@@ -544,13 +544,13 @@ test("index cache-busts scripts for tournament search deployment", () => {
   const path = require("node:path");
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-  assert.match(html, /script\.js\?v=20260519-2/);
-  assert.match(html, /lib\/chess-results\.js\?v=20260519-2/);
-  assert.match(html, /styles\.css\?v=20260519-2/);
+  assert.match(html, /script\.js\?v=20260519-6/);
+  assert.match(html, /lib\/chess-results\.js\?v=20260519-6/);
+  assert.match(html, /styles\.css\?v=20260519-6/);
   assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);
 });
 
-test("buildTournamentSearchPayload submits only country and tournament end date filters", () => {
+test("buildTournamentSearchPayload submits country and end dates in browser date format", () => {
   const payload = buildTournamentSearchPayload({ country: "LAT", dateFrom: "2026-05-01", dateTo: "2026-06-30" });
 
   assert.equal(payload.get("ctl00$P1$combo_land"), "LAT");
@@ -560,6 +560,43 @@ test("buildTournamentSearchPayload submits only country and tournament end date 
   assert.equal(payload.get("ctl00$P1$combo_sort"), "3");
   assert.equal(payload.get("ctl00$P1$cb_suchen"), "Search");
   assert.equal(payload.has("ctl00$P1$txt_bez"), false);
+});
+
+test("parseTournamentSearchPage ignores form/layout rows without tournament links", () => {
+  const html = String.raw`
+    <table class="CRs1">
+      <tr><th>Tournament</th><th>End</th></tr>
+      <tr><td>Tournament</td><td></td></tr>
+      <tr><td>Logged on: Gast Servertime 19.05.2026 20:05:53</td><td></td></tr>
+      <tr><td>Logout Login Arabic ARM AZE BIH</td><td></td></tr>
+      <tr><td><a href="tnr1416130.aspx?lan=1">Latvijas ātrspēles līgas vasaras sezona 2026 | 1.</a></td><td>24.05.2026</td></tr>
+    </table>`;
+
+  const parsed = parseTournamentSearchPage(html, "https://s2.chess-results.com/turniersuche.aspx?lan=1");
+
+  assert.equal(parsed.rows.length, 1);
+  assert.equal(parsed.rows[0].mobile.title, "Latvijas ātrspēles līgas vasaras sezona 2026 | 1.");
+  assert.equal(parsed.rows[0].mobile.titleHref, "https://s2.chess-results.com/tnr1416130.aspx?lan=1");
+});
+
+test("parseTournamentSearchPage picks nested CRs2 result table instead of outer layout table", () => {
+  const html = String.raw`
+    <table id="datenxx">
+      <tr><td><span>Tournament</span></td></tr>
+      <tr><td>
+        <table class="CRs2">
+          <tr><td>No.</td><td>Tournament</td><th>FED</th><th>from</th><th>to</th><td>dbkey</td></tr>
+          <tr><td>1</td><td><a href="tnr1406253.aspx?lan=1">Daugava Chess rapid maijs 2026 (24.05.2026)</a></td><td>LAT</td><td>2026/05/24</td><td>2026/05/24</td><td>1406253</td></tr>
+        </table>
+      </td></tr>
+    </table>`;
+
+  const parsed = parseTournamentSearchPage(html, "https://s2.chess-results.com/turniersuche.aspx?lan=1");
+
+  assert.equal(parsed.rows.length, 1);
+  assert.deepEqual(parsed.columns.map((column) => column.label), ["No.", "Tournament", "FED", "from", "to", "dbkey"]);
+  assert.equal(parsed.rows[0].mobile.topLeft, "DB 1");
+  assert.equal(parsed.rows[0].mobile.title, "Daugava Chess rapid maijs 2026 (24.05.2026)");
 });
 
 test("parseTournamentSearchPage extracts tournament result links and dates", () => {
