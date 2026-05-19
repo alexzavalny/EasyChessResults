@@ -539,6 +539,17 @@ test("parsePlayerPage supports opponent rows when club column is absent", () => 
   );
 });
 
+test("index cache-busts scripts for tournament search deployment", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+
+  assert.match(html, /script\.js\?v=20260519-2/);
+  assert.match(html, /lib\/chess-results\.js\?v=20260519-2/);
+  assert.match(html, /styles\.css\?v=20260519-2/);
+  assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);
+});
+
 test("buildTournamentSearchPayload submits only country and tournament end date filters", () => {
   const payload = buildTournamentSearchPayload({ country: "LAT", dateFrom: "2026-05-01", dateTo: "2026-06-30" });
 
