@@ -22,8 +22,10 @@ const {
   parsePlayerPage,
   parseTournamentColumns,
   parseTournamentRoundLinks,
+  parseTournamentSearchPage,
   prependBookmarkMarker,
   PROXY_LOADER,
+  buildTournamentSearchPayload,
   readQueryState,
   renderCellContent,
   renderColorMarker,
@@ -535,4 +537,42 @@ test("parsePlayerPage supports opponent rows when club column is absent", () => 
     parsed.rows[0].cells[3].href,
     "https://s2.chess-results.com/tnr1375437.aspx?lan=1&art=9&fed=LAT&snr=60"
   );
+});
+
+test("buildTournamentSearchPayload submits only country and tournament end date filters", () => {
+  const payload = buildTournamentSearchPayload({ country: "LAT", dateFrom: "2026-05-01", dateTo: "2026-06-30" });
+
+  assert.equal(payload.get("ctl00$P1$combo_land"), "LAT");
+  assert.equal(payload.get("ctl00$P1$txt_von_tag"), "2026-05-01");
+  assert.equal(payload.get("ctl00$P1$txt_bis_tag"), "2026-06-30");
+  assert.equal(payload.get("ctl00$P1$combo_art"), "5");
+  assert.equal(payload.get("ctl00$P1$combo_sort"), "3");
+  assert.equal(payload.get("ctl00$P1$cb_suchen"), "Search");
+  assert.equal(payload.has("ctl00$P1$txt_bez"), false);
+});
+
+test("parseTournamentSearchPage extracts tournament result links and dates", () => {
+  const html = String.raw`
+    <table class="CRs1">
+      <tr><th>DB-Key</th><th>Tournament</th><th>Start</th><th>End</th><th>FED</th></tr>
+      <tr>
+        <td>1416130</td>
+        <td><a href="tnr1416130.aspx?lan=1">Latvijas ātrspēles līgas vasaras sezona 2026 | 1.</a></td>
+        <td>2026/05/20</td><td>2026/05/20</td><td>LAT</td>
+      </tr>
+      <tr>
+        <td>1405517</td>
+        <td><a href="https://s2.chess-results.com/tnr1405517.aspx?lan=1">Jēkabpils pavasaris</a></td>
+        <td>2026/06/01</td><td>2026/06/02</td><td>LAT</td>
+      </tr>
+    </table>`;
+
+  const parsed = parseTournamentSearchPage(html, "https://s2.chess-results.com/turniersuche.aspx?lan=1");
+
+  assert.equal(parsed.kind, "search");
+  assert.equal(parsed.rows.length, 2);
+  assert.deepEqual(parsed.columns.map((column) => column.label), ["DB-Key", "Tournament", "Start", "End", "FED"]);
+  assert.equal(parsed.rows[0].cells[1].text, "Latvijas ātrspēles līgas vasaras sezona 2026 | 1.");
+  assert.equal(parsed.rows[0].cells[1].href, "https://s2.chess-results.com/tnr1416130.aspx?lan=1");
+  assert.equal(parsed.rows[0].mobile.titleHref, "https://s2.chess-results.com/tnr1416130.aspx?lan=1");
 });

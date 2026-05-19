@@ -30,7 +30,6 @@
               id="url-input"
               name="url"
               type="url"
-              required
               spellcheck="false"
               placeholder="https://s3.chess-results.com/tnr....aspx?art=1 or art=9..."
             />
@@ -39,6 +38,27 @@
           <div class="actions">
             <button type="submit" id="load-button">Load page</button>
             <button type="button" id="demo-button" class="ghost">Load demo player</button>
+          </div>
+        </form>
+
+        <form id="search-form" class="stack tournament-search">
+          <p class="form-note">Or search tournaments directly on Chess-Results.</p>
+          <div class="search-grid">
+            <label class="field compact-field">
+              <span>Country</span>
+              <input id="search-country" name="country" type="text" maxlength="3" placeholder="LAT" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span>End date from</span>
+              <input id="search-date-from" name="dateFrom" type="date" />
+            </label>
+            <label class="field">
+              <span>End date to</span>
+              <input id="search-date-to" name="dateTo" type="date" />
+            </label>
+          </div>
+          <div class="actions">
+            <button type="submit" id="search-button">Search tournaments</button>
           </div>
         </form>
 

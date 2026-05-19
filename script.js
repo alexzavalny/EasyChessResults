@@ -1,7 +1,11 @@
 const form = document.querySelector("#load-form");
+const searchForm = document.querySelector("#search-form");
 const heroSection = document.querySelector("#hero-section");
 const controlsPanel = document.querySelector("#controls-panel");
 const urlInput = document.querySelector("#url-input");
+const searchCountryInput = document.querySelector("#search-country");
+const searchDateFromInput = document.querySelector("#search-date-from");
+const searchDateToInput = document.querySelector("#search-date-to");
 const htmlInput = document.querySelector("#html-input");
 const parseButton = document.querySelector("#parse-button");
 const demoButton = document.querySelector("#demo-button");
@@ -31,6 +35,7 @@ const {
   PROXY_LOADER,
   attachPlayerNavigation,
   buildInternalPageUrl,
+  buildTournamentSearchPayload,
   chip,
   collectUniqueColumnValues,
   debugLog,
@@ -41,6 +46,7 @@ const {
   normalizeFideId,
   normalizeSupportedUrl,
   parseChessResultsPage,
+  parseTournamentSearchPage,
   prependBookmarkMarker,
   readQueryState,
   renderMobileRows,
@@ -50,6 +56,7 @@ const {
 } = window.ChessResults;
 
 const BOOKMARK_STORAGE_KEY = "easy-chess-results:bookmarked-players";
+const TOURNAMENT_SEARCH_URL = "https://s2.chess-results.com/turniersuche.aspx?lan=1";
 let currentView = null;
 let currentTypeFilter = "";
 
@@ -411,6 +418,60 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
   }
 }
 
+function extractHiddenFields(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return Object.fromEntries(
+    [...doc.querySelectorAll('input[type="hidden"][name]')].map((input) => [input.name, input.value || ""])
+  );
+}
+
+async function loadTournamentSearch({ country = "", dateFrom = "", dateTo = "" } = {}) {
+  const normalizedCountry = country.trim().toUpperCase() || "-";
+  const initialProxyUrl = PROXY_LOADER.buildUrl(TOURNAMENT_SEARCH_URL, Date.now());
+
+  setStatus(`Preparing tournament search via ${PROXY_LOADER.name}...`);
+  const initialResponse = await fetch(initialProxyUrl, { cache: "no-store" });
+  if (!initialResponse.ok) {
+    throw new Error(`Could not open tournament search with status ${initialResponse.status}.`);
+  }
+  const initialHtml = await PROXY_LOADER.parseResponse(initialResponse);
+  const payload = buildTournamentSearchPayload({
+    country: normalizedCountry,
+    dateFrom,
+    dateTo,
+    hiddenFields: extractHiddenFields(initialHtml)
+  });
+  const proxyUrl = PROXY_LOADER.buildUrl(TOURNAMENT_SEARCH_URL, Date.now());
+
+  setStatus(`Searching tournaments via ${PROXY_LOADER.name}...`);
+  const response = await fetch(proxyUrl, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: payload.toString()
+  });
+  if (!response.ok) {
+    throw new Error(`Tournament search failed with status ${response.status}.`);
+  }
+  const html = await PROXY_LOADER.parseResponse(response);
+  const parsed = parseTournamentSearchPage(html, TOURNAMENT_SEARCH_URL);
+  currentTypeFilter = "";
+  writeQueryState(window.history, window.location.href, { url: "", parent: "" }, "push");
+  renderResult({
+    ...parsed,
+    title: normalizedCountry === "-" ? parsed.title : `${parsed.title} · ${normalizedCountry}`,
+    chips: [
+      { label: "Country", value: normalizedCountry === "-" ? "Any" : normalizedCountry },
+      { label: "End from", value: dateFrom },
+      { label: "End to", value: dateTo }
+    ].filter((entry) => entry.value)
+  });
+  updateOriginalLink(TOURNAMENT_SEARCH_URL);
+  setStatus(`Found ${parsed.rows.length} tournaments.`, "success");
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const url = urlInput.value.trim();
@@ -428,6 +489,19 @@ form.addEventListener("submit", async (event) => {
       `${error.message} If this is a browser CORS block, use the HTML paste fallback below.`,
       "error"
     );
+  }
+});
+
+searchForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await loadTournamentSearch({
+      country: searchCountryInput.value,
+      dateFrom: searchDateFromInput.value,
+      dateTo: searchDateToInput.value
+    });
+  } catch (error) {
+    setStatus(`${error.message} If the browser blocks search, open Tournament search on Chess-Results.`, "error");
   }
 });
 
