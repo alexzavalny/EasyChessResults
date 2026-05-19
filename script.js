@@ -425,8 +425,8 @@ function extractHiddenFields(html) {
   );
 }
 
-async function loadTournamentSearch({ country = "", dateFrom = "", dateTo = "" } = {}) {
-  const normalizedCountry = country.trim().toUpperCase() || "-";
+async function loadTournamentSearch({ country = "", dateFrom = "", dateTo = "", historyMode = "push" } = {}) {
+  const normalizedCountry = country.trim().toUpperCase() || "LAT";
   const initialProxyUrl = PROXY_LOADER.buildUrl(TOURNAMENT_SEARCH_URL, Date.now());
 
   setStatus(`Preparing tournament search via ${PROXY_LOADER.name}...`);
@@ -458,7 +458,19 @@ async function loadTournamentSearch({ country = "", dateFrom = "", dateTo = "" }
   const html = await PROXY_LOADER.parseResponse(response);
   const parsed = parseTournamentSearchPage(html, TOURNAMENT_SEARCH_URL);
   currentTypeFilter = "";
-  writeQueryState(window.history, window.location.href, { url: "", parent: "" }, "push");
+  searchCountryInput.value = normalizedCountry === "-" ? "" : normalizedCountry;
+  searchDateFromInput.value = dateFrom;
+  searchDateToInput.value = dateTo;
+  writeQueryState(
+    window.history,
+    window.location.href,
+    {
+      searchCountry: normalizedCountry === "-" ? "" : normalizedCountry,
+      searchFrom: dateFrom,
+      searchTo: dateTo
+    },
+    historyMode
+  );
   renderResult({
     ...parsed,
     title: normalizedCountry === "-" ? parsed.title : `${parsed.title} · ${normalizedCountry}`,
@@ -609,6 +621,8 @@ resultPanel.addEventListener("click", async (event) => {
   }
 });
 
+searchCountryInput.value = searchCountryInput.value.trim().toUpperCase() || "LAT";
+
 const initialState = readQueryState(window.location.search);
 debugLog("initial query state", initialState);
 if (initialState.url) {
@@ -621,6 +635,19 @@ if (initialState.url) {
     clearView({ keepUrl: true });
     setStatus(error.message, "error");
   });
+} else if (initialState.searchCountry || initialState.searchFrom || initialState.searchTo) {
+  searchCountryInput.value = (initialState.searchCountry || "LAT").trim().toUpperCase();
+  searchDateFromInput.value = initialState.searchFrom;
+  searchDateToInput.value = initialState.searchTo;
+  loadTournamentSearch({
+    country: searchCountryInput.value,
+    dateFrom: searchDateFromInput.value,
+    dateTo: searchDateToInput.value,
+    historyMode: "replace"
+  }).catch((error) => {
+    clearView({ keepUrl: true });
+    setStatus(error.message, "error");
+  });
 }
 
 window.addEventListener("popstate", () => {
@@ -628,9 +655,28 @@ window.addEventListener("popstate", () => {
   debugLog("popstate", queryState);
 
   if (!queryState.url) {
+    if (queryState.searchCountry || queryState.searchFrom || queryState.searchTo) {
+      searchCountryInput.value = (queryState.searchCountry || "LAT").trim().toUpperCase();
+      searchDateFromInput.value = queryState.searchFrom;
+      searchDateToInput.value = queryState.searchTo;
+      loadTournamentSearch({
+        country: searchCountryInput.value,
+        dateFrom: searchDateFromInput.value,
+        dateTo: searchDateToInput.value,
+        historyMode: "replace"
+      }).catch((error) => {
+        clearView({ keepUrl: true });
+        setStatus(error.message, "error");
+      });
+      return;
+    }
+
     clearView({ keepUrl: true });
     urlInput.value = "";
     htmlInput.value = "";
+    searchCountryInput.value = "LAT";
+    searchDateFromInput.value = "";
+    searchDateToInput.value = "";
     setStatus("");
     return;
   }

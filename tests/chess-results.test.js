@@ -45,10 +45,13 @@ test("normalizeFideId strips non-digits", () => {
   assert.equal(normalizeFideId(""), "");
 });
 
-test("readQueryState returns url and parent from search params", () => {
-  assert.deepEqual(readQueryState("?url=https%3A%2F%2Fa.test%2Fone&parent=https%3A%2F%2Fa.test%2Ftwo"), {
+test("readQueryState returns url parent and tournament search params", () => {
+  assert.deepEqual(readQueryState("?url=https%3A%2F%2Fa.test%2Fone&parent=https%3A%2F%2Fa.test%2Ftwo&searchCountry=LAT&searchFrom=2026-05-22&searchTo=2026-05-24"), {
     url: "https://a.test/one",
-    parent: "https://a.test/two"
+    parent: "https://a.test/two",
+    searchCountry: "LAT",
+    searchFrom: "2026-05-22",
+    searchTo: "2026-05-24"
   });
 });
 
@@ -58,6 +61,11 @@ test("createAppUrl adds and removes query params cleanly", () => {
   assert.equal(
     createAppUrl(baseHref, { url: "https://chess-results.com/player", parent: "https://chess-results.com/event" }),
     "https://app.test/index.html?stale=1&url=https%3A%2F%2Fchess-results.com%2Fplayer&parent=https%3A%2F%2Fchess-results.com%2Fevent"
+  );
+
+  assert.equal(
+    createAppUrl(baseHref, { searchCountry: "LAT", searchFrom: "2026-05-22", searchTo: "2026-05-24" }),
+    "https://app.test/index.html?stale=1&searchCountry=LAT&searchFrom=2026-05-22&searchTo=2026-05-24"
   );
 
   assert.equal(createAppUrl(baseHref, { url: "", parent: "" }), "https://app.test/index.html?stale=1");
@@ -544,10 +552,11 @@ test("index cache-busts scripts for tournament search deployment", () => {
   const path = require("node:path");
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-  assert.match(html, /script\.js\?v=20260519-6/);
-  assert.match(html, /lib\/chess-results\.js\?v=20260519-6/);
-  assert.match(html, /styles\.css\?v=20260519-6/);
+  assert.match(html, /script\.js\?v=20260519-7/);
+  assert.match(html, /lib\/chess-results\.js\?v=20260519-7/);
+  assert.match(html, /styles\.css\?v=20260519-7/);
   assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);
+  assert.match(html, /id="search-country"[^>]*value="LAT"/);
 });
 
 test("buildTournamentSearchPayload submits country and end dates in browser date format", () => {
