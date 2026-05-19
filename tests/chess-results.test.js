@@ -559,9 +559,9 @@ test("index cache-busts scripts for tournament search deployment", () => {
   const path = require("node:path");
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-  assert.match(html, /script\.js\?v=20260519-7/);
-  assert.match(html, /lib\/chess-results\.js\?v=20260519-7/);
-  assert.match(html, /styles\.css\?v=20260519-7/);
+  assert.match(html, /script\.js\?v=20260519-8/);
+  assert.match(html, /lib\/chess-results\.js\?v=20260519-8/);
+  assert.match(html, /styles\.css\?v=20260519-8/);
   assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);
   assert.doesNotMatch(html, /id="search-country"/);
 });
