@@ -149,12 +149,8 @@ textarea {
 
 .search-grid {
   display: grid;
-  grid-template-columns: minmax(6.5rem, 0.5fr) repeat(2, minmax(10rem, 1fr));
+  grid-template-columns: repeat(2, minmax(10rem, 1fr));
   gap: 0.75rem;
-}
-
-.compact-field input {
-  text-transform: uppercase;
 }
 
 textarea {

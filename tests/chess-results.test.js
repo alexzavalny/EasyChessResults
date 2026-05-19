@@ -46,10 +46,9 @@ test("normalizeFideId strips non-digits", () => {
 });
 
 test("readQueryState returns url parent and tournament search params", () => {
-  assert.deepEqual(readQueryState("?url=https%3A%2F%2Fa.test%2Fone&parent=https%3A%2F%2Fa.test%2Ftwo&searchCountry=LAT&searchFrom=2026-05-22&searchTo=2026-05-24"), {
+  assert.deepEqual(readQueryState("?url=https%3A%2F%2Fa.test%2Fone&parent=https%3A%2F%2Fa.test%2Ftwo&searchFrom=2026-05-22&searchTo=2026-05-24"), {
     url: "https://a.test/one",
     parent: "https://a.test/two",
-    searchCountry: "LAT",
     searchFrom: "2026-05-22",
     searchTo: "2026-05-24"
   });
@@ -64,11 +63,19 @@ test("createAppUrl adds and removes query params cleanly", () => {
   );
 
   assert.equal(
-    createAppUrl(baseHref, { searchCountry: "LAT", searchFrom: "2026-05-22", searchTo: "2026-05-24" }),
-    "https://app.test/index.html?stale=1&searchCountry=LAT&searchFrom=2026-05-22&searchTo=2026-05-24"
+    createAppUrl(baseHref, { searchFrom: "2026-05-22", searchTo: "2026-05-24" }),
+    "https://app.test/index.html?stale=1&searchFrom=2026-05-22&searchTo=2026-05-24"
   );
 
   assert.equal(createAppUrl(baseHref, { url: "", parent: "" }), "https://app.test/index.html?stale=1");
+});
+
+test("createAppUrl strips legacy searchCountry from base URL", () => {
+  const baseHref = "https://app.test/index.html?searchCountry=LAT";
+  assert.equal(
+    createAppUrl(baseHref, { searchFrom: "2026-05-22" }),
+    "https://app.test/index.html?searchFrom=2026-05-22"
+  );
 });
 
 test("buildInternalPageUrl delegates to app URL construction", () => {
@@ -556,7 +563,7 @@ test("index cache-busts scripts for tournament search deployment", () => {
   assert.match(html, /lib\/chess-results\.js\?v=20260519-7/);
   assert.match(html, /styles\.css\?v=20260519-7/);
   assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);
-  assert.match(html, /id="search-country"[^>]*value="LAT"/);
+  assert.doesNotMatch(html, /id="search-country"/);
 });
 
 test("buildTournamentSearchPayload submits country and end dates in browser date format", () => {

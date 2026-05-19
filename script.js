@@ -3,7 +3,6 @@ const searchForm = document.querySelector("#search-form");
 const heroSection = document.querySelector("#hero-section");
 const controlsPanel = document.querySelector("#controls-panel");
 const urlInput = document.querySelector("#url-input");
-const searchCountryInput = document.querySelector("#search-country");
 const searchDateFromInput = document.querySelector("#search-date-from");
 const searchDateToInput = document.querySelector("#search-date-to");
 const htmlInput = document.querySelector("#html-input");
@@ -57,6 +56,7 @@ const {
 
 const BOOKMARK_STORAGE_KEY = "easy-chess-results:bookmarked-players";
 const TOURNAMENT_SEARCH_URL = "https://s2.chess-results.com/turniersuche.aspx?lan=1";
+const TOURNAMENT_SEARCH_COUNTRY = "LAT";
 let currentView = null;
 let currentTypeFilter = "";
 
@@ -425,8 +425,8 @@ function extractHiddenFields(html) {
   );
 }
 
-async function loadTournamentSearch({ country = "", dateFrom = "", dateTo = "", historyMode = "push" } = {}) {
-  const normalizedCountry = country.trim().toUpperCase() || "LAT";
+async function loadTournamentSearch({ dateFrom = "", dateTo = "", historyMode = "push" } = {}) {
+  const country = TOURNAMENT_SEARCH_COUNTRY;
   const initialProxyUrl = PROXY_LOADER.buildUrl(TOURNAMENT_SEARCH_URL, Date.now());
 
   setStatus(`Preparing tournament search via ${PROXY_LOADER.name}...`);
@@ -436,7 +436,7 @@ async function loadTournamentSearch({ country = "", dateFrom = "", dateTo = "", 
   }
   const initialHtml = await PROXY_LOADER.parseResponse(initialResponse);
   const payload = buildTournamentSearchPayload({
-    country: normalizedCountry,
+    country,
     dateFrom,
     dateTo,
     hiddenFields: extractHiddenFields(initialHtml)
@@ -458,14 +458,12 @@ async function loadTournamentSearch({ country = "", dateFrom = "", dateTo = "", 
   const html = await PROXY_LOADER.parseResponse(response);
   const parsed = parseTournamentSearchPage(html, TOURNAMENT_SEARCH_URL);
   currentTypeFilter = "";
-  searchCountryInput.value = normalizedCountry === "-" ? "" : normalizedCountry;
   searchDateFromInput.value = dateFrom;
   searchDateToInput.value = dateTo;
   writeQueryState(
     window.history,
     window.location.href,
     {
-      searchCountry: normalizedCountry === "-" ? "" : normalizedCountry,
       searchFrom: dateFrom,
       searchTo: dateTo
     },
@@ -473,9 +471,9 @@ async function loadTournamentSearch({ country = "", dateFrom = "", dateTo = "", 
   );
   renderResult({
     ...parsed,
-    title: normalizedCountry === "-" ? parsed.title : `${parsed.title} · ${normalizedCountry}`,
+    title: `${parsed.title} · ${country}`,
     chips: [
-      { label: "Country", value: normalizedCountry === "-" ? "Any" : normalizedCountry },
+      { label: "Country", value: country },
       { label: "End from", value: dateFrom },
       { label: "End to", value: dateTo }
     ].filter((entry) => entry.value)
@@ -508,7 +506,6 @@ searchForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     await loadTournamentSearch({
-      country: searchCountryInput.value,
       dateFrom: searchDateFromInput.value,
       dateTo: searchDateToInput.value
     });
@@ -621,8 +618,6 @@ resultPanel.addEventListener("click", async (event) => {
   }
 });
 
-searchCountryInput.value = searchCountryInput.value.trim().toUpperCase() || "LAT";
-
 const initialState = readQueryState(window.location.search);
 debugLog("initial query state", initialState);
 if (initialState.url) {
@@ -635,12 +630,10 @@ if (initialState.url) {
     clearView({ keepUrl: true });
     setStatus(error.message, "error");
   });
-} else if (initialState.searchCountry || initialState.searchFrom || initialState.searchTo) {
-  searchCountryInput.value = (initialState.searchCountry || "LAT").trim().toUpperCase();
+} else if (initialState.searchFrom || initialState.searchTo) {
   searchDateFromInput.value = initialState.searchFrom;
   searchDateToInput.value = initialState.searchTo;
   loadTournamentSearch({
-    country: searchCountryInput.value,
     dateFrom: searchDateFromInput.value,
     dateTo: searchDateToInput.value,
     historyMode: "replace"
@@ -655,12 +648,10 @@ window.addEventListener("popstate", () => {
   debugLog("popstate", queryState);
 
   if (!queryState.url) {
-    if (queryState.searchCountry || queryState.searchFrom || queryState.searchTo) {
-      searchCountryInput.value = (queryState.searchCountry || "LAT").trim().toUpperCase();
+    if (queryState.searchFrom || queryState.searchTo) {
       searchDateFromInput.value = queryState.searchFrom;
       searchDateToInput.value = queryState.searchTo;
       loadTournamentSearch({
-        country: searchCountryInput.value,
         dateFrom: searchDateFromInput.value,
         dateTo: searchDateToInput.value,
         historyMode: "replace"
@@ -674,7 +665,6 @@ window.addEventListener("popstate", () => {
     clearView({ keepUrl: true });
     urlInput.value = "";
     htmlInput.value = "";
-    searchCountryInput.value = "LAT";
     searchDateFromInput.value = "";
     searchDateToInput.value = "";
     setStatus("");
