@@ -615,6 +615,26 @@ test("parseTournamentSearchPage picks nested CRs2 result table instead of outer 
   assert.equal(parsed.rows[0].mobile.title, "Daugava Chess rapid maijs 2026 (24.05.2026)");
 });
 
+test("parseTournamentSearchPage surfaces time-control on mobile details", () => {
+  const html = String.raw`
+    <table class="CRs1">
+      <tr><th>DB-Key</th><th>Tournament</th><th>Time-control</th><th>Start</th><th>End</th><th>FED</th></tr>
+      <tr>
+        <td>1416130</td>
+        <td><a href="tnr1416130.aspx?lan=1">Latvijas ātrspēles līgas vasaras sezona 2026 | 1.</a></td>
+        <td>Rapid</td>
+        <td>2026/05/20</td><td>2026/05/20</td><td>LAT</td>
+      </tr>
+    </table>`;
+
+  const parsed = parseTournamentSearchPage(html, "https://s2.chess-results.com/turniersuche.aspx?lan=1");
+
+  assert.equal(parsed.rows.length, 1);
+  assert.ok(parsed.rows[0].mobile.details.some((detail) => /Time-control: Rapid/.test(detail)), `mobile.details should include time control: ${JSON.stringify(parsed.rows[0].mobile.details)}`);
+  assert.ok(parsed.rows[0].mobile.details.some((detail) => /Start: 2026\/05\/20/.test(detail)));
+  assert.ok(parsed.rows[0].mobile.details.some((detail) => /End: 2026\/05\/20/.test(detail)));
+});
+
 test("parseTournamentSearchPage extracts tournament result links and dates", () => {
   const html = String.raw`
     <table class="CRs1">
