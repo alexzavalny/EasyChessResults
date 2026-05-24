@@ -1,10 +1,14 @@
 const form = document.querySelector("#load-form");
 const searchForm = document.querySelector("#search-form");
+const playerSearchForm = document.querySelector("#player-search-form");
 const heroSection = document.querySelector("#hero-section");
 const controlsPanel = document.querySelector("#controls-panel");
 const urlInput = document.querySelector("#url-input");
 const searchDateFromInput = document.querySelector("#search-date-from");
 const searchDateToInput = document.querySelector("#search-date-to");
+const playerFirstNameInput = document.querySelector("#player-first-name");
+const playerLastNameInput = document.querySelector("#player-last-name");
+const playerCountryInput = document.querySelector("#player-country");
 const htmlInput = document.querySelector("#html-input");
 const parseButton = document.querySelector("#parse-button");
 const demoButton = document.querySelector("#demo-button");
@@ -34,6 +38,7 @@ const {
   PROXY_LOADER,
   attachPlayerNavigation,
   buildInternalPageUrl,
+  buildPlayerSearchPayload,
   buildTournamentSearchPayload,
   chip,
   collectUniqueColumnValues,
@@ -45,6 +50,7 @@ const {
   normalizeFideId,
   normalizeSupportedUrl,
   parseChessResultsPage,
+  parsePlayerSearchPage,
   parseTournamentSearchPage,
   prependBookmarkMarker,
   readQueryState,
@@ -57,6 +63,7 @@ const {
 const BOOKMARK_STORAGE_KEY = "easy-chess-results:bookmarked-players";
 const TOURNAMENT_SEARCH_URL = "https://s2.chess-results.com/turniersuche.aspx?lan=1";
 const TOURNAMENT_SEARCH_COUNTRY = "LAT";
+const PLAYER_SEARCH_URL = "https://s2.chess-results.com/SpielerSuche.aspx?lan=1";
 let currentView = null;
 let currentTypeFilter = "";
 
@@ -482,6 +489,70 @@ async function loadTournamentSearch({ dateFrom = "", dateTo = "", historyMode = 
   setStatus(`Found ${parsed.rows.length} tournaments.`, "success");
 }
 
+async function loadPlayerSearch({ firstName = "", lastName = "", country = "", historyMode = "push" } = {}) {
+  const normalizedCountry = country.trim().toUpperCase() || "LAT";
+  const normalizedFirstName = firstName.trim();
+  const normalizedLastName = lastName.trim();
+  if (!normalizedFirstName && !normalizedLastName) {
+    throw new Error("Enter a first name or last name for player search.");
+  }
+
+  const initialProxyUrl = PROXY_LOADER.buildUrl(PLAYER_SEARCH_URL, Date.now());
+  setStatus(`Preparing player search via ${PROXY_LOADER.name}...`);
+  const initialResponse = await fetch(initialProxyUrl, { cache: "no-store" });
+  if (!initialResponse.ok) {
+    throw new Error(`Could not open player search with status ${initialResponse.status}.`);
+  }
+  const initialHtml = await PROXY_LOADER.parseResponse(initialResponse);
+  const payload = buildPlayerSearchPayload({
+    firstName: normalizedFirstName,
+    lastName: normalizedLastName,
+    country: normalizedCountry,
+    hiddenFields: extractHiddenFields(initialHtml)
+  });
+  const proxyUrl = PROXY_LOADER.buildUrl(PLAYER_SEARCH_URL, Date.now());
+
+  setStatus(`Searching players via ${PROXY_LOADER.name}...`);
+  const response = await fetch(proxyUrl, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: payload.toString()
+  });
+  if (!response.ok) {
+    throw new Error(`Player search failed with status ${response.status}.`);
+  }
+  const html = await PROXY_LOADER.parseResponse(response);
+  const parsed = parsePlayerSearchPage(html, PLAYER_SEARCH_URL);
+  currentTypeFilter = "";
+  playerFirstNameInput.value = normalizedFirstName;
+  playerLastNameInput.value = normalizedLastName;
+  playerCountryInput.value = normalizedCountry;
+  writeQueryState(
+    window.history,
+    window.location.href,
+    {
+      playerFirstName: normalizedFirstName,
+      playerLastName: normalizedLastName,
+      playerCountry: normalizedCountry === "LAT" ? "" : normalizedCountry
+    },
+    historyMode
+  );
+  renderResult({
+    ...parsed,
+    title: `${parsed.title} · ${[normalizedFirstName, normalizedLastName].filter(Boolean).join(" ")} · ${normalizedCountry}`,
+    chips: [
+      { label: "First name", value: normalizedFirstName },
+      { label: "Last name", value: normalizedLastName },
+      { label: "Country", value: normalizedCountry }
+    ].filter((entry) => entry.value)
+  });
+  updateOriginalLink(PLAYER_SEARCH_URL);
+  setStatus(`Found ${parsed.rows.length} player entries.`, "success");
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const url = urlInput.value.trim();
@@ -511,6 +582,19 @@ searchForm.addEventListener("submit", async (event) => {
     });
   } catch (error) {
     setStatus(`${error.message} If the browser blocks search, open Tournament search on Chess-Results.`, "error");
+  }
+});
+
+playerSearchForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await loadPlayerSearch({
+      firstName: playerFirstNameInput.value,
+      lastName: playerLastNameInput.value,
+      country: playerCountryInput.value
+    });
+  } catch (error) {
+    setStatus(`${error.message} If the browser blocks search, open Player search on Chess-Results.`, "error");
   }
 });
 
@@ -618,6 +702,9 @@ resultPanel.addEventListener("click", async (event) => {
   }
 });
 
+playerCountryInput.value = playerCountryInput.value.trim().toUpperCase() || "LAT";
+
+
 const initialState = readQueryState(window.location.search);
 debugLog("initial query state", initialState);
 if (initialState.url) {
@@ -626,6 +713,19 @@ if (initialState.url) {
   loadFromUrl(initialState.url, {
     historyMode: "replace",
     parentUrl: initialState.parent
+  }).catch((error) => {
+    clearView({ keepUrl: true });
+    setStatus(error.message, "error");
+  });
+} else if (initialState.playerFirstName || initialState.playerLastName) {
+  playerFirstNameInput.value = initialState.playerFirstName;
+  playerLastNameInput.value = initialState.playerLastName;
+  playerCountryInput.value = (initialState.playerCountry || "LAT").trim().toUpperCase();
+  loadPlayerSearch({
+    firstName: playerFirstNameInput.value,
+    lastName: playerLastNameInput.value,
+    country: playerCountryInput.value,
+    historyMode: "replace"
   }).catch((error) => {
     clearView({ keepUrl: true });
     setStatus(error.message, "error");
@@ -648,6 +748,22 @@ window.addEventListener("popstate", () => {
   debugLog("popstate", queryState);
 
   if (!queryState.url) {
+    if (queryState.playerFirstName || queryState.playerLastName) {
+      playerFirstNameInput.value = queryState.playerFirstName;
+      playerLastNameInput.value = queryState.playerLastName;
+      playerCountryInput.value = (queryState.playerCountry || "LAT").trim().toUpperCase();
+      loadPlayerSearch({
+        firstName: playerFirstNameInput.value,
+        lastName: playerLastNameInput.value,
+        country: playerCountryInput.value,
+        historyMode: "replace"
+      }).catch((error) => {
+        clearView({ keepUrl: true });
+        setStatus(error.message, "error");
+      });
+      return;
+    }
+
     if (queryState.searchFrom || queryState.searchTo) {
       searchDateFromInput.value = queryState.searchFrom;
       searchDateToInput.value = queryState.searchTo;
@@ -667,6 +783,9 @@ window.addEventListener("popstate", () => {
     htmlInput.value = "";
     searchDateFromInput.value = "";
     searchDateToInput.value = "";
+    playerFirstNameInput.value = "";
+    playerLastNameInput.value = "";
+    playerCountryInput.value = "LAT";
     setStatus("");
     return;
   }

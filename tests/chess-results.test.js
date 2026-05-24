@@ -23,9 +23,11 @@ const {
   parseTournamentColumns,
   parseTournamentRoundLinks,
   parseTournamentSearchPage,
+  parsePlayerSearchPage,
   prependBookmarkMarker,
   PROXY_LOADER,
   buildTournamentSearchPayload,
+  buildPlayerSearchPayload,
   readQueryState,
   renderCellContent,
   renderColorMarker,
@@ -50,7 +52,10 @@ test("readQueryState returns url parent and tournament search params", () => {
     url: "https://a.test/one",
     parent: "https://a.test/two",
     searchFrom: "2026-05-22",
-    searchTo: "2026-05-24"
+    searchTo: "2026-05-24",
+    playerFirstName: "",
+    playerLastName: "",
+    playerCountry: ""
   });
 });
 
@@ -559,11 +564,13 @@ test("index cache-busts scripts for tournament search deployment", () => {
   const path = require("node:path");
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-  assert.match(html, /script\.js\?v=20260519-8/);
-  assert.match(html, /lib\/chess-results\.js\?v=20260519-8/);
-  assert.match(html, /styles\.css\?v=20260519-8/);
+  assert.match(html, /script\.js\?v=20260524-1/);
+  assert.match(html, /lib\/chess-results\.js\?v=20260524-1/);
+  assert.match(html, /styles\.css\?v=20260524-1/);
   assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);
   assert.doesNotMatch(html, /id="search-country"/);
+  assert.match(html, /<form id="player-search-form"[^>]*onsubmit="return false"/);
+  assert.match(html, /id="player-country"[^>]*value="LAT"/);
 });
 
 test("buildTournamentSearchPayload submits country and end dates in browser date format", () => {
@@ -659,4 +666,40 @@ test("parseTournamentSearchPage extracts tournament result links and dates", () 
   assert.equal(parsed.rows[0].cells[1].text, "Latvijas ātrspēles līgas vasaras sezona 2026 | 1.");
   assert.equal(parsed.rows[0].cells[1].href, "https://s2.chess-results.com/tnr1416130.aspx?lan=1");
   assert.equal(parsed.rows[0].mobile.titleHref, "https://s2.chess-results.com/tnr1416130.aspx?lan=1");
+});
+
+
+test("buildPlayerSearchPayload searches players by first and last name with LAT default", () => {
+  const payload = buildPlayerSearchPayload({ firstName: "Grigorijs", lastName: "Zavalnijs" });
+
+  assert.equal(payload.get("ctl00$P1$txt_vorname"), "Grigorijs");
+  assert.equal(payload.get("ctl00$P1$txt_nachname"), "Zavalnijs");
+  assert.equal(payload.get("ctl00$P1$txt_FED"), "LAT");
+  assert.equal(payload.get("ctl00$P1$combo_Sort"), "0");
+  assert.equal(payload.get("ctl00$P1$combo_anzahl_zeilen"), "1");
+  assert.equal(payload.get("ctl00$P1$cb_suchen"), "Search");
+  assert.equal(payload.has("ctl00$P1$cb_download_Excel"), false);
+});
+
+test("parsePlayerSearchPage extracts player and tournament links", () => {
+  const html = String.raw`
+    <table class="CRs2">
+      <tr><th>Name</th><th>ID</th><th>FideID</th><th>Club/City</th><th>FED</th><td>Tournament</td><td>End-Date</td><th>Rk.</th><th>Rd.</th><td>n</td></tr>
+      <tr>
+        <td><a href="tnr1374860.aspx?lan=1&amp;art=9&amp;snr=35">Zavalnijs, Grigorijs</a></td>
+        <td>0</td><td>11653949</td><td>Motivacija/J. Moisejeva</td><td>LAT</td>
+        <td><a href="tnr1374860.aspx?lan=1">Šahatons 2026- A</a></td><td>2026/04/11</td><td>42</td><td>7</td><td>43</td>
+      </tr>
+    </table>`;
+
+  const parsed = parsePlayerSearchPage(html, "https://s2.chess-results.com/SpielerSuche.aspx?lan=1");
+
+  assert.equal(parsed.kind, "player-search");
+  assert.equal(parsed.label, "Player search");
+  assert.equal(parsed.rows.length, 1);
+  assert.deepEqual(parsed.columns.map((column) => column.label), ["Name", "ID", "FideID", "Club/City", "FED", "Tournament", "End-Date", "Rk.", "Rd.", "n"]);
+  assert.equal(parsed.rows[0].cells[0].href, "https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=9&snr=35");
+  assert.equal(parsed.rows[0].cells[5].href, "https://s2.chess-results.com/tnr1374860.aspx?lan=1");
+  assert.equal(parsed.rows[0].mobile.title, "Zavalnijs, Grigorijs");
+  assert.equal(parsed.rows[0].mobile.titleHref, "https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=9&snr=35");
 });
