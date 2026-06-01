@@ -628,3 +628,82 @@ a {
     padding-bottom: 6rem;
   }
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111816;
+    --panel: rgba(24, 33, 31, 0.88);
+    --panel-strong: rgba(28, 37, 35, 0.96);
+    --line: rgba(232, 224, 209, 0.16);
+    --text: #f2eadc;
+    --muted: #a8b6b1;
+    --accent: #e07a4f;
+    --accent-dark: #ffb08b;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+  }
+
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(224, 122, 79, 0.16), transparent 24rem),
+      radial-gradient(circle at bottom right, rgba(92, 135, 122, 0.14), transparent 22rem),
+      linear-gradient(180deg, #121816 0%, #0c1110 100%);
+  }
+
+  .panel { border-color: rgba(242, 234, 220, 0.1); }
+
+  input,
+  textarea,
+  button,
+  select { background: rgba(12, 17, 16, 0.62); }
+
+  input::placeholder,
+  textarea::placeholder { color: rgba(242, 234, 220, 0.45); }
+
+  .status.error { color: #ff9b8f; }
+  .status.success { color: #7fd6ad; }
+
+  .bookmark-button {
+    border-color: rgba(224, 122, 79, 0.3);
+    background: rgba(224, 122, 79, 0.12);
+  }
+
+  .chip-up {
+    background: rgba(68, 190, 132, 0.13);
+    border-color: rgba(68, 190, 132, 0.28);
+    color: #8ee0b4;
+  }
+
+  .chip-down {
+    background: rgba(236, 103, 103, 0.13);
+    border-color: rgba(236, 103, 103, 0.28);
+    color: #ffaaa6;
+  }
+
+  .chip-link {
+    border-color: rgba(242, 234, 220, 0.14);
+    background: rgba(12, 17, 16, 0.5);
+  }
+
+  .type-filter { box-shadow: inset 0 1px 0 rgba(242, 234, 220, 0.08); }
+
+  .type-filter select {
+    border-color: rgba(242, 234, 220, 0.12);
+    background-color: rgba(12, 17, 16, 0.72);
+  }
+
+  .mobile-card {
+    border-color: rgba(242, 234, 220, 0.1);
+    background: rgba(12, 17, 16, 0.48);
+  }
+
+  .color-dot.white { border-color: rgba(242, 234, 220, 0.35); }
+
+  .color-dot.black {
+    background: #050807;
+    border-color: rgba(242, 234, 220, 0.28);
+  }
+
+  tbody td { border-bottom-color: rgba(242, 234, 220, 0.08); }
+  tbody tr:nth-child(even) { background: rgba(242, 234, 220, 0.04); }
+  .mobile-reload { box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35); }
+}

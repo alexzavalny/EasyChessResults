@@ -566,7 +566,7 @@ test("index cache-busts scripts for tournament search deployment", () => {
 
   assert.match(html, /script\.js\?v=20260524-1/);
   assert.match(html, /lib\/chess-results\.js\?v=20260524-1/);
-  assert.match(html, /styles\.css\?v=20260524-1/);
+  assert.match(html, /styles\.css\?v=20260602-1/);
   assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);
   assert.doesNotMatch(html, /id="search-country"/);
   assert.match(html, /<form id="player-search-form"[^>]*onsubmit="return false"/);
