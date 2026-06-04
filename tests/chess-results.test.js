@@ -126,7 +126,7 @@ test("appendCacheBustParam adds a timestamp without mutating invalid inputs", ()
 test("PROXY_LOADER.buildUrl encodes the cache-busted source url", () => {
   assert.equal(
     PROXY_LOADER.buildUrl("https://chess-results.com/tnr1.aspx?art=1&lan=1", 1234567890),
-    "https://corsproxy.io/?url=https%3A%2F%2Fchess-results.com%2Ftnr1.aspx%3Fart%3D1%26lan%3D1%26_echr_ts%3D1234567890"
+    "https://api.codetabs.com/v1/proxy?quest=https%3A%2F%2Fchess-results.com%2Ftnr1.aspx%3Fart%3D1%26lan%3D1%26_echr_ts%3D1234567890"
   );
 });
 
