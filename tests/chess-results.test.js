@@ -123,11 +123,19 @@ test("appendCacheBustParam adds a timestamp without mutating invalid inputs", ()
   );
 });
 
-test("PROXY_LOADER.buildUrl encodes the cache-busted source url", () => {
+test("PROXY_LOADER.buildUrl adds the cache-busted source url to Jina Reader", () => {
   assert.equal(
     PROXY_LOADER.buildUrl("https://chess-results.com/tnr1.aspx?art=1&lan=1", 1234567890),
-    "https://api.codetabs.com/v1/proxy?quest=https%3A%2F%2Fchess-results.com%2Ftnr1.aspx%3Fart%3D1%26lan%3D1%26_echr_ts%3D1234567890"
+    "https://r.jina.ai/http://r.jina.ai/http://https://chess-results.com/tnr1.aspx?art=1&lan=1&_echr_ts=1234567890"
   );
+});
+
+test("PROXY_LOADER.parseResponse returns Jina Reader text", async () => {
+  const response = {
+    text: async () => "Title: ok"
+  };
+
+  assert.equal(await PROXY_LOADER.parseResponse(response), "Title: ok");
 });
 
 test("writeQueryState uses requested history mode", () => {
