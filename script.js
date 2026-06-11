@@ -743,7 +743,11 @@ if (initialState.url) {
     historyMode: "replace"
   }).catch((error) => {
     clearView({ keepUrl: true });
-    setStatus(error.message, "error");
+    setStatus(
+      `${error.message} The current public proxy can load tournament pages, but it cannot submit Chess-Results search forms. Open Tournament search on Chess-Results and paste a tournament link here.`,
+      "error"
+    );
+    updateOriginalLink(TOURNAMENT_SEARCH_URL);
   });
 }
 
