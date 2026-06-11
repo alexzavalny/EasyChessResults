@@ -581,7 +581,11 @@ searchForm.addEventListener("submit", async (event) => {
       dateTo: searchDateToInput.value
     });
   } catch (error) {
-    setStatus(`${error.message} If the browser blocks search, open Tournament search on Chess-Results.`, "error");
+    setStatus(
+      `${error.message} The current public proxy can load tournament pages, but it cannot submit Chess-Results search forms. Open Tournament search on Chess-Results and paste a tournament link here.`,
+      "error"
+    );
+    updateOriginalLink(TOURNAMENT_SEARCH_URL);
   }
 });
 
