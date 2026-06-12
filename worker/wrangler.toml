@@ -1,0 +1,9 @@
+name = "easy-chess-results-proxy"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+[vars]
+CACHE_SECONDS = "60"
+UPSTREAM_TIMEOUT_MS = "10000"
+# Set this to the GitHub Pages origin after deployment if you want strict CORS.
+# ALLOWED_ORIGIN = "https://alexzavalny.github.io"

@@ -123,14 +123,14 @@ test("appendCacheBustParam adds a timestamp without mutating invalid inputs", ()
   );
 });
 
-test("PROXY_LOADER.buildUrl adds the cache-busted source url to Jina Reader", () => {
+test("PROXY_LOADER.buildUrl adds the cache-busted source url to the Cloudflare Worker", () => {
   assert.equal(
     PROXY_LOADER.buildUrl("https://chess-results.com/tnr1.aspx?art=1&lan=1", 1234567890),
-    "https://r.jina.ai/http://r.jina.ai/http://https://chess-results.com/tnr1.aspx?art=1&lan=1&_echr_ts=1234567890"
+    "https://easy-chess-results-proxy.alexzavalny.workers.dev/fetch?url=https%3A%2F%2Fchess-results.com%2Ftnr1.aspx%3Fart%3D1%26lan%3D1%26_echr_ts%3D1234567890"
   );
 });
 
-test("PROXY_LOADER.parseResponse returns Jina Reader text", async () => {
+test("PROXY_LOADER.parseResponse returns proxy text", async () => {
   const response = {
     text: async () => "Title: ok"
   };
