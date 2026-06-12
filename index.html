@@ -13,20 +13,17 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260602-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260613-2" />
   </head>
   <body>
     <main class="shell">
       <section class="hero" id="hero-section">
         <div class="topbar">
           <p class="eyebrow" data-i18n="hero.eyebrow">Chess-Results parser</p>
-          <label class="language-switch">
-            <span data-i18n="language.label">Interface</span>
-            <select id="language-select" aria-label="Interface language">
-              <option value="en">English</option>
-              <option value="ru">Русский</option>
-            </select>
-          </label>
+          <div class="language-switch" role="group" aria-label="Language">
+            <button type="button" class="language-option" data-language-option="en">EN</button>
+            <button type="button" class="language-option" data-language-option="ru">RU</button>
+          </div>
         </div>
         <h1 data-i18n="hero.title">Minimal tournament and player views</h1>
         <p class="lede" data-i18n="hero.lede">
@@ -156,6 +153,6 @@
     </main>
 
     <script src="./lib/chess-results.js?v=20260613-1"></script>
-    <script src="./script.js?v=20260613-1"></script>
+    <script src="./script.js?v=20260613-2"></script>
   </body>
 </html>

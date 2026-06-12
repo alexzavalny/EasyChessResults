@@ -572,9 +572,9 @@ test("index cache-busts scripts for tournament search deployment", () => {
   const path = require("node:path");
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-  assert.match(html, /script\.js\?v=20260613-1/);
+  assert.match(html, /script\.js\?v=20260613-2/);
   assert.match(html, /lib\/chess-results\.js\?v=20260613-1/);
-  assert.match(html, /styles\.css\?v=20260602-2/);
+  assert.match(html, /styles\.css\?v=20260613-2/);
   assert.match(html, /<meta name="color-scheme" content="light dark" \/>/);
   assert.match(html, /<meta name="theme-color" content="#121816" media="\(prefers-color-scheme: dark\)" \/>/);
   assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);

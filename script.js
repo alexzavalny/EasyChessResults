@@ -10,7 +10,7 @@ const playerFirstNameInput = document.querySelector("#player-first-name");
 const playerLastNameInput = document.querySelector("#player-last-name");
 const playerCountryInput = document.querySelector("#player-country");
 const htmlInput = document.querySelector("#html-input");
-const languageSelect = document.querySelector("#language-select");
+const languageOptions = document.querySelectorAll("[data-language-option]");
 const parseButton = document.querySelector("#parse-button");
 const demoButton = document.querySelector("#demo-button");
 const statusNode = document.querySelector("#status");
@@ -71,7 +71,7 @@ const TRANSLATIONS = {
     "hero.eyebrow": "Chess-Results parser",
     "hero.title": "Minimal tournament and player views",
     "hero.lede": "Paste a Chess-Results tournament ranking or player page URL and render a cleaner view.",
-    "language.label": "Interface",
+
     "form.urlLabel": "Chess-Results URL",
     "form.loadPage": "Load page",
     "form.loadDemo": "Load demo player",
@@ -128,7 +128,7 @@ const TRANSLATIONS = {
     "hero.eyebrow": "Парсер Chess-Results",
     "hero.title": "Удобные турниры и игроки",
     "hero.lede": "Вставь ссылку на таблицу турнира или страницу игрока Chess-Results — покажем чистый вид.",
-    "language.label": "Интерфейс",
+
     "form.urlLabel": "Ссылка Chess-Results",
     "form.loadPage": "Загрузить",
     "form.loadDemo": "Демо игрок",
@@ -208,7 +208,11 @@ function t(key, params = {}) {
 
 function applyLanguage() {
   document.documentElement.lang = currentLanguage;
-  if (languageSelect) languageSelect.value = currentLanguage;
+  languageOptions.forEach((option) => {
+    const isActive = option.dataset.languageOption === currentLanguage;
+    option.classList.toggle("is-active", isActive);
+    option.setAttribute("aria-pressed", String(isActive));
+  });
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
   });
@@ -983,10 +987,12 @@ resultPanel.addEventListener("click", async (event) => {
   }
 });
 
-languageSelect?.addEventListener("change", () => {
-  currentLanguage = languageSelect.value === "ru" ? "ru" : "en";
-  window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
-  applyLanguage();
+languageOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    currentLanguage = option.dataset.languageOption === "ru" ? "ru" : "en";
+    window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+    applyLanguage();
+  });
 });
 
 applyLanguage();

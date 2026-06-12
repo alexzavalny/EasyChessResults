@@ -54,14 +54,28 @@ body {
 .language-switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  color: var(--muted);
+  gap: 0.25rem;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.82rem;
+  padding: 0.18rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.language-switch select {
-  padding: 0.42rem 0.65rem;
+.language-option {
+  min-width: 2.4rem;
+  padding: 0.36rem 0.62rem;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+}
+
+.language-option.is-active {
+  color: #10201c;
+  background: var(--accent);
+  box-shadow: 0 8px 18px rgba(89, 255, 192, 0.22);
 }
 
 .eyebrow,
