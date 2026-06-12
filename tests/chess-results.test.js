@@ -90,14 +90,14 @@ test("buildInternalPageUrl delegates to app URL construction", () => {
   );
 });
 
-test("normalizeSupportedUrl upgrades overview links from art=0 to art=1", () => {
+test("normalizeSupportedUrl upgrades overview links from art=0 to art=1 and forces lan=1", () => {
   assert.equal(
-    normalizeSupportedUrl("https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=0&turdet=YES&flag=30&SNode=S0"),
+    normalizeSupportedUrl("https://s2.chess-results.com/tnr1374860.aspx?lan=2&art=0&turdet=YES&flag=30&SNode=S0"),
     "https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=1&turdet=YES&flag=30&SNode=S0"
   );
   assert.equal(
-    normalizeSupportedUrl("https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=9&snr=5"),
-    "https://s2.chess-results.com/tnr1374860.aspx?lan=1&art=9&snr=5"
+    normalizeSupportedUrl("https://s2.chess-results.com/tnr1374860.aspx?art=9&snr=5"),
+    "https://s2.chess-results.com/tnr1374860.aspx?art=9&snr=5&lan=1"
   );
 });
 
@@ -572,8 +572,8 @@ test("index cache-busts scripts for tournament search deployment", () => {
   const path = require("node:path");
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-  assert.match(html, /script\.js\?v=20260611-3/);
-  assert.match(html, /lib\/chess-results\.js\?v=20260611-2/);
+  assert.match(html, /script\.js\?v=20260613-1/);
+  assert.match(html, /lib\/chess-results\.js\?v=20260613-1/);
   assert.match(html, /styles\.css\?v=20260602-2/);
   assert.match(html, /<meta name="color-scheme" content="light dark" \/>/);
   assert.match(html, /<meta name="theme-color" content="#121816" media="\(prefers-color-scheme: dark\)" \/>/);

@@ -44,6 +44,26 @@ body {
   padding: 1rem 0 1.5rem;
 }
 
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.language-switch select {
+  padding: 0.42rem 0.65rem;
+}
+
 .eyebrow,
 .label,
 .status,
@@ -267,7 +287,8 @@ button.ghost {
 
 .fide-link,
 .original-link,
-.bookmark-button {
+.bookmark-button,
+.watch-button {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -277,7 +298,8 @@ button.ghost {
   font-size: 0.82rem;
 }
 
-.bookmark-button {
+.bookmark-button,
+.watch-button {
   padding: 0.42rem 0.8rem;
   border-radius: 999px;
   border: 1px solid rgba(191, 91, 50, 0.2);
@@ -287,6 +309,16 @@ button.ghost {
 
 .bookmark-button::before {
   content: "🔖";
+}
+
+.watch-button::before {
+  content: "🔔";
+}
+
+.watch-button.is-watching {
+  background: rgba(39, 90, 74, 0.12);
+  border-color: rgba(39, 90, 74, 0.26);
+  color: #275a4a;
 }
 
 .fide-link {

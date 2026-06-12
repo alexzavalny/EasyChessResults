@@ -10,6 +10,7 @@ const playerFirstNameInput = document.querySelector("#player-first-name");
 const playerLastNameInput = document.querySelector("#player-last-name");
 const playerCountryInput = document.querySelector("#player-country");
 const htmlInput = document.querySelector("#html-input");
+const languageSelect = document.querySelector("#language-select");
 const parseButton = document.querySelector("#parse-button");
 const demoButton = document.querySelector("#demo-button");
 const statusNode = document.querySelector("#status");
@@ -18,6 +19,7 @@ const resultKindNode = document.querySelector("#result-kind");
 const resultTitleNode = document.querySelector("#result-title");
 const backLinkNode = document.querySelector("#back-link");
 const bookmarkButtonNode = document.querySelector("#bookmark-button");
+const watchButtonNode = document.querySelector("#watch-button");
 const fideLinkNode = document.querySelector("#fide-link");
 const originalLinkNode = document.querySelector("#original-link");
 const resultSubtitleNode = document.querySelector("#result-subtitle");
@@ -61,11 +63,178 @@ const {
 } = window.ChessResults;
 
 const BOOKMARK_STORAGE_KEY = "easy-chess-results:bookmarked-players";
+const WATCH_STORAGE_KEY = "easy-chess-results:watched-players";
+const LANGUAGE_STORAGE_KEY = "easy-chess-results:language";
+const WATCH_INTERVAL_MS = 60000;
+const TRANSLATIONS = {
+  en: {
+    "hero.eyebrow": "Chess-Results parser",
+    "hero.title": "Minimal tournament and player views",
+    "hero.lede": "Paste a Chess-Results tournament ranking or player page URL and render a cleaner view.",
+    "language.label": "Interface",
+    "form.urlLabel": "Chess-Results URL",
+    "form.loadPage": "Load page",
+    "form.loadDemo": "Load demo player",
+    "search.tournamentNote": "Or search tournaments directly on Chess-Results.",
+    "search.endFrom": "End date from",
+    "search.endTo": "End date to",
+    "search.tournamentsButton": "Search tournaments",
+    "search.playerNote": "Or search players by first and last name. Country defaults to LAT.",
+    "search.firstName": "First name",
+    "search.lastName": "Last name",
+    "search.country": "Country",
+    "search.playersButton": "Search players",
+    "fallback.summary": "Fallback if browser blocks direct loading",
+    "fallback.help": "Some browsers will block cross-origin requests to Chess-Results. If that happens, open the page, view page source, copy the HTML, and paste it here.",
+    "fallback.htmlSource": "HTML source",
+    "fallback.parse": "Parse pasted HTML",
+    "result.back": "Back to tournament",
+    "result.type": "Typ",
+    "result.reload": "Reload",
+    "result.view": "View",
+    "bookmark.add": "Bookmark",
+    "bookmark.added": "Bookmarked",
+    "watch.add": "Watch player",
+    "watch.on": "Watching",
+    "filter.allGroups": "All groups",
+    "status.removedBookmark": "Removed bookmark for {player}.",
+    "status.bookmarked": "Bookmarked {player}.",
+    "status.watchStarted": "Watching {player}. This page will check for changes every minute while open.",
+    "status.watchStopped": "Stopped watching {player}.",
+    "status.notificationsOn": "Browser notifications enabled.",
+    "status.playerChanged": "New Chess-Results data for {player}.",
+    "status.loading": "Loading Chess-Results page via {proxy}...",
+    "status.loadingNormalized": "Loading supported Chess-Results view via {proxy}...",
+    "status.loaded": "Loaded {rows} rows via {proxy}.",
+    "status.loadedNormalized": "Loaded {rows} rows. Converted unsupported art=0 link to ranking view (art=1).",
+    "status.enterUrl": "Enter a Chess-Results page URL.",
+    "status.proxyFallback": "{message} If this is a browser CORS block, use the HTML paste fallback below.",
+    "status.pasteHtml": "Paste the full Chess-Results page HTML first.",
+    "status.parsed": "Parsed {rows} rows from pasted HTML.",
+    "status.demoLoaded": "Loaded demo data for {player}.",
+    "status.searchPreparing": "Preparing tournament search via {proxy}...",
+    "status.searchingTournaments": "Searching tournaments via {proxy}...",
+    "status.tournamentsFound": "Found {rows} tournaments.",
+    "status.playerSearchPreparing": "Preparing player search via {proxy}...",
+    "status.searchingPlayers": "Searching players via {proxy}...",
+    "status.playersFound": "Found {rows} player entries.",
+    "label.country": "Country",
+    "label.endFrom": "End from",
+    "label.endTo": "End to",
+    "label.firstName": "First name",
+    "label.lastName": "Last name"
+  },
+  ru: {
+    "hero.eyebrow": "Парсер Chess-Results",
+    "hero.title": "Удобные турниры и игроки",
+    "hero.lede": "Вставь ссылку на таблицу турнира или страницу игрока Chess-Results — покажем чистый вид.",
+    "language.label": "Интерфейс",
+    "form.urlLabel": "Ссылка Chess-Results",
+    "form.loadPage": "Загрузить",
+    "form.loadDemo": "Демо игрок",
+    "search.tournamentNote": "Или ищи турниры прямо на Chess-Results.",
+    "search.endFrom": "Дата окончания от",
+    "search.endTo": "Дата окончания до",
+    "search.tournamentsButton": "Искать турниры",
+    "search.playerNote": "Или ищи игроков по имени и фамилии. Страна по умолчанию LAT.",
+    "search.firstName": "Имя",
+    "search.lastName": "Фамилия",
+    "search.country": "Страна",
+    "search.playersButton": "Искать игроков",
+    "fallback.summary": "Запасной вариант, если браузер блокирует загрузку",
+    "fallback.help": "Если браузер заблокирует запросы к Chess-Results, открой страницу, скопируй HTML-исходник и вставь сюда.",
+    "fallback.htmlSource": "HTML-исходник",
+    "fallback.parse": "Разобрать HTML",
+    "result.back": "Назад к турниру",
+    "result.type": "Тип",
+    "result.reload": "Обновить",
+    "result.view": "Вид",
+    "bookmark.add": "В закладки",
+    "bookmark.added": "В закладках",
+    "watch.add": "Следить за игроком",
+    "watch.on": "Следим",
+    "filter.allGroups": "Все группы",
+    "status.removedBookmark": "Убрали закладку для {player}.",
+    "status.bookmarked": "Добавили {player} в закладки.",
+    "status.watchStarted": "Следим за {player}. Пока страница открыта, проверяем изменения раз в минуту.",
+    "status.watchStopped": "Больше не следим за {player}.",
+    "status.notificationsOn": "Уведомления браузера включены.",
+    "status.playerChanged": "На Chess-Results появились изменения для {player}.",
+    "status.loading": "Загружаем страницу Chess-Results через {proxy}...",
+    "status.loadingNormalized": "Загружаем поддерживаемый вид Chess-Results через {proxy}...",
+    "status.loaded": "Загружено строк: {rows} через {proxy}.",
+    "status.loadedNormalized": "Загружено строк: {rows}. Неподдерживаемая ссылка art=0 преобразована в таблицу art=1.",
+    "status.enterUrl": "Вставь ссылку на страницу Chess-Results.",
+    "status.proxyFallback": "{message} Если это CORS-блокировка браузера, используй вставку HTML ниже.",
+    "status.pasteHtml": "Сначала вставь полный HTML страницы Chess-Results.",
+    "status.parsed": "Разобрано строк из HTML: {rows}.",
+    "status.demoLoaded": "Загружены демо-данные для {player}.",
+    "status.searchPreparing": "Готовим поиск турниров через {proxy}...",
+    "status.searchingTournaments": "Ищем турниры через {proxy}...",
+    "status.tournamentsFound": "Найдено турниров: {rows}.",
+    "status.playerSearchPreparing": "Готовим поиск игроков через {proxy}...",
+    "status.searchingPlayers": "Ищем игроков через {proxy}...",
+    "status.playersFound": "Найдено записей игроков: {rows}.",
+    "label.country": "Страна",
+    "label.endFrom": "Окончание от",
+    "label.endTo": "Окончание до",
+    "label.firstName": "Имя",
+    "label.lastName": "Фамилия"
+  }
+};
 const TOURNAMENT_SEARCH_URL = "https://s2.chess-results.com/turniersuche.aspx?lan=1";
 const TOURNAMENT_SEARCH_COUNTRY = "LAT";
 const PLAYER_SEARCH_URL = "https://s2.chess-results.com/SpielerSuche.aspx?lan=1";
 let currentView = null;
 let currentTypeFilter = "";
+
+let currentLanguage = readStoredLanguage();
+let watchTimer = null;
+let silentWatchReload = false;
+
+function readStoredLanguage() {
+  try {
+    const stored = window.localStorage?.getItem(LANGUAGE_STORAGE_KEY);
+    return stored === "ru" || stored === "en" ? stored : "en";
+  } catch {
+    return "en";
+  }
+}
+
+function t(key, params = {}) {
+  const template = TRANSLATIONS[currentLanguage]?.[key] || TRANSLATIONS.en[key] || key;
+  return template.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? ""));
+}
+
+function applyLanguage() {
+  document.documentElement.lang = currentLanguage;
+  if (languageSelect) languageSelect.value = currentLanguage;
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  updateBookmarkButton(currentView);
+  updateWatchButton(currentView);
+  if (!currentView) {
+    resultKindNode.textContent = t("result.view");
+  } else {
+    renderTypeFilter(currentView);
+  }
+}
+
+function readJsonStorage(key, fallback = {}) {
+  if (!window.localStorage) return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : fallback;
+    return parsed && typeof parsed === "object" ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJsonStorage(key, value) {
+  if (window.localStorage) window.localStorage.setItem(key, JSON.stringify(value));
+}
 
 function setStatus(message, tone = "") {
   debugLog("setStatus", { message, tone });
@@ -89,25 +258,19 @@ function updateDocumentTitle(view = null) {
 }
 
 function readBookmarks() {
-  if (!window.localStorage) {
-    return {};
-  }
-
-  try {
-    const raw = window.localStorage.getItem(BOOKMARK_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+  return readJsonStorage(BOOKMARK_STORAGE_KEY, {});
 }
 
 function writeBookmarks(bookmarks) {
-  if (!window.localStorage) {
-    return;
-  }
+  writeJsonStorage(BOOKMARK_STORAGE_KEY, bookmarks);
+}
 
-  window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(bookmarks));
+function readWatchedPlayers() {
+  return readJsonStorage(WATCH_STORAGE_KEY, {});
+}
+
+function writeWatchedPlayers(players) {
+  writeJsonStorage(WATCH_STORAGE_KEY, players);
 }
 
 function normalizeBookmarkName(name = "") {
@@ -118,7 +281,7 @@ function updateBookmarkButton(view = null) {
   const playerName = normalizeBookmarkName(view?.title || "");
   if (view?.kind !== "player" || !playerName) {
     bookmarkButtonNode.hidden = true;
-    bookmarkButtonNode.textContent = "Bookmark";
+    bookmarkButtonNode.textContent = t("bookmark.add");
     bookmarkButtonNode.dataset.bookmarkKey = "";
     bookmarkButtonNode.dataset.playerName = "";
     bookmarkButtonNode.dataset.fideId = "";
@@ -127,7 +290,7 @@ function updateBookmarkButton(view = null) {
 
   const bookmarked = Boolean(readBookmarks()[playerName]);
   bookmarkButtonNode.hidden = false;
-  bookmarkButtonNode.textContent = bookmarked ? "Bookmarked" : "Bookmark";
+  bookmarkButtonNode.textContent = bookmarked ? t("bookmark.added") : t("bookmark.add");
   bookmarkButtonNode.dataset.bookmarkKey = playerName;
   bookmarkButtonNode.dataset.playerName = playerName;
   bookmarkButtonNode.dataset.fideId = normalizeFideId(view.fideId || "");
@@ -174,6 +337,86 @@ function decorateViewWithBookmarks(view) {
   };
 }
 
+function getPlayerWatchKey(view = null) {
+  const sourceUrl = readQueryState(window.location.search).url;
+  const fideId = normalizeFideId(view?.fideId || "");
+  return fideId || normalizeSupportedUrl(sourceUrl) || normalizeBookmarkName(view?.title || "");
+}
+
+function buildPlayerSnapshot(view = null) {
+  if (!view || view.kind !== "player") return "";
+  return JSON.stringify({
+    title: normalizeBookmarkName(view.title),
+    chips: view.chips || [],
+    rows: (view.rows || []).map((row) => ({
+      cells: (row.cells || []).map((cell) => String(cell.text || "").trim())
+    }))
+  });
+}
+
+function updateWatchButton(view = null) {
+  if (view?.kind !== "player") {
+    watchButtonNode.hidden = true;
+    watchButtonNode.textContent = t("watch.add");
+    watchButtonNode.classList.remove("is-watching");
+    watchButtonNode.dataset.watchKey = "";
+    return;
+  }
+
+  const watchKey = getPlayerWatchKey(view);
+  const watched = Boolean(readWatchedPlayers()[watchKey]);
+  watchButtonNode.hidden = false;
+  watchButtonNode.textContent = watched ? t("watch.on") : t("watch.add");
+  watchButtonNode.classList.toggle("is-watching", watched);
+  watchButtonNode.dataset.watchKey = watchKey;
+}
+
+function notifyPlayerChanged(playerName) {
+  const message = t("status.playerChanged", { player: playerName || "player" });
+  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+    new Notification("Easy Chess Results", { body: message });
+  }
+  setStatus(message, "success");
+}
+
+function updateWatchedSnapshot(view = null, { notify = false } = {}) {
+  if (view?.kind !== "player") return;
+  const watchKey = getPlayerWatchKey(view);
+  const watchedPlayers = readWatchedPlayers();
+  const watched = watchedPlayers[watchKey];
+  if (!watched) return;
+
+  const snapshot = buildPlayerSnapshot(view);
+  if (notify && watched.snapshot && watched.snapshot !== snapshot) {
+    notifyPlayerChanged(normalizeBookmarkName(view.title));
+  }
+  watchedPlayers[watchKey] = {
+    ...watched,
+    name: normalizeBookmarkName(view.title),
+    url: normalizeSupportedUrl(readQueryState(window.location.search).url),
+    fideId: normalizeFideId(view.fideId || ""),
+    snapshot,
+    updatedAt: new Date().toISOString()
+  };
+  writeWatchedPlayers(watchedPlayers);
+}
+
+function scheduleWatchPolling() {
+  if (watchTimer) clearInterval(watchTimer);
+  watchTimer = setInterval(() => {
+    const queryState = readQueryState(window.location.search);
+    if (!currentView || currentView.kind !== "player" || !queryState.url) return;
+    const watched = readWatchedPlayers()[getPlayerWatchKey(currentView)];
+    if (!watched) return;
+    silentWatchReload = true;
+    loadFromUrl(queryState.url, { historyMode: "replace", parentUrl: queryState.parent }).catch((error) => {
+      setStatus(error.message, "error");
+    }).finally(() => {
+      silentWatchReload = false;
+    });
+  }, WATCH_INTERVAL_MS);
+}
+
 function clearView({ keepUrl = false } = {}) {
   debugLog("clearView", { keepUrl });
   currentView = null;
@@ -185,11 +428,12 @@ function clearView({ keepUrl = false } = {}) {
   clearButton.hidden = true;
   controlsPanel.hidden = false;
   heroSection.hidden = false;
-  resultKindNode.textContent = "View";
+  resultKindNode.textContent = t("result.view");
   resultTitleNode.textContent = "-";
   backLinkNode.hidden = true;
   backLinkNode.href = "#";
   updateBookmarkButton(null);
+  updateWatchButton(null);
   updateFideLink("");
   updateOriginalLink(keepUrl ? readQueryState(window.location.search).url : "");
   resultSubtitleNode.textContent = "";
@@ -238,7 +482,7 @@ function renderTypeFilter(view) {
 
   typeFilterWrapNode.hidden = false;
   typeFilterSelectNode.innerHTML = [
-    '<option value="">All groups</option>',
+    `<option value="">${escapeHtml(t("filter.allGroups"))}</option>`,
     ...values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
   ].join("");
   typeFilterSelectNode.value = values.includes(currentTypeFilter) ? currentTypeFilter : "";
@@ -271,6 +515,8 @@ function renderResult(view) {
   resultKindNode.textContent = decoratedView.label;
   resultTitleNode.textContent = decoratedView.title;
   updateBookmarkButton(view);
+  updateWatchButton(view);
+  updateWatchedSnapshot(view, { notify: silentWatchReload });
   updateFideLink(decoratedView.fideUrl || "");
   updateOriginalLink(sourceUrl);
 
@@ -328,7 +574,7 @@ bookmarkButtonNode.addEventListener("click", () => {
     if (currentView) {
       renderResult(currentView);
     }
-    setStatus(`Removed bookmark for ${playerName || "player"}.`, "success");
+    setStatus(t("status.removedBookmark", { player: playerName || "player" }), "success");
     return;
   }
 
@@ -338,7 +584,37 @@ bookmarkButtonNode.addEventListener("click", () => {
   if (currentView) {
     renderResult(currentView);
   }
-  setStatus(`Bookmarked ${playerName || "player"}.`, "success");
+  setStatus(t("status.bookmarked", { player: playerName || "player" }), "success");
+});
+
+watchButtonNode.addEventListener("click", async () => {
+  if (!currentView || currentView.kind !== "player") return;
+  const watchKey = getPlayerWatchKey(currentView);
+  const playerName = normalizeBookmarkName(currentView.title) || "player";
+  const watchedPlayers = readWatchedPlayers();
+  if (watchedPlayers[watchKey]) {
+    delete watchedPlayers[watchKey];
+    writeWatchedPlayers(watchedPlayers);
+    updateWatchButton(currentView);
+    setStatus(t("status.watchStopped", { player: playerName }), "success");
+    return;
+  }
+
+  watchedPlayers[watchKey] = {
+    name: playerName,
+    url: normalizeSupportedUrl(readQueryState(window.location.search).url),
+    fideId: normalizeFideId(currentView.fideId || ""),
+    snapshot: buildPlayerSnapshot(currentView),
+    updatedAt: new Date().toISOString()
+  };
+  writeWatchedPlayers(watchedPlayers);
+  updateWatchButton(currentView);
+
+  if (typeof Notification !== "undefined" && Notification.permission === "default") {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") setStatus(t("status.notificationsOn"), "success");
+  }
+  setStatus(t("status.watchStarted", { player: playerName }), "success");
 });
 
 function parseAndPrepareView(html, sourceUrl, parentUrl = "") {
@@ -369,11 +645,13 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
     proxyUrl
   });
 
-  setStatus(
-    wasNormalized
-      ? `Loading supported Chess-Results view via ${PROXY_LOADER.name}...`
-      : `Loading Chess-Results page via ${PROXY_LOADER.name}...`
-  );
+  if (!silentWatchReload) {
+    setStatus(
+      wasNormalized
+        ? t("status.loadingNormalized", { proxy: PROXY_LOADER.name })
+        : t("status.loading", { proxy: PROXY_LOADER.name })
+    );
+  }
 
   try {
     const response = await fetch(proxyUrl, { cache: "no-store" });
@@ -406,12 +684,14 @@ async function loadFromUrl(url, { historyMode = "replace", parentUrl = "" } = {}
     );
     renderResult(parsed);
     updateOriginalLink(normalizedUrl);
-    setStatus(
-      wasNormalized
-        ? `Loaded ${parsed.rows.length} rows. Converted unsupported art=0 link to ranking view (art=1).`
-        : `Loaded ${parsed.rows.length} rows via ${PROXY_LOADER.name}.`,
-      "success"
-    );
+    if (!silentWatchReload) {
+      setStatus(
+        wasNormalized
+          ? t("status.loadedNormalized", { rows: parsed.rows.length })
+          : t("status.loaded", { rows: parsed.rows.length, proxy: PROXY_LOADER.name }),
+        "success"
+      );
+    }
   } catch (error) {
     debugLog("loadFromUrl:error", {
       message: error.message,
@@ -436,7 +716,7 @@ async function loadTournamentSearch({ dateFrom = "", dateTo = "", historyMode = 
   const country = TOURNAMENT_SEARCH_COUNTRY;
   const initialProxyUrl = PROXY_LOADER.buildUrl(TOURNAMENT_SEARCH_URL, Date.now());
 
-  setStatus(`Preparing tournament search via ${PROXY_LOADER.name}...`);
+  setStatus(t("status.searchPreparing", { proxy: PROXY_LOADER.name }));
   const initialResponse = await fetch(initialProxyUrl, { cache: "no-store" });
   if (!initialResponse.ok) {
     throw new Error(`Could not open tournament search with status ${initialResponse.status}.`);
@@ -450,7 +730,7 @@ async function loadTournamentSearch({ dateFrom = "", dateTo = "", historyMode = 
   });
   const proxyUrl = PROXY_LOADER.buildUrl(TOURNAMENT_SEARCH_URL, Date.now());
 
-  setStatus(`Searching tournaments via ${PROXY_LOADER.name}...`);
+  setStatus(t("status.searchingTournaments", { proxy: PROXY_LOADER.name }));
   const response = await fetch(proxyUrl, {
     method: "POST",
     cache: "no-store",
@@ -480,13 +760,13 @@ async function loadTournamentSearch({ dateFrom = "", dateTo = "", historyMode = 
     ...parsed,
     title: `${parsed.title} · ${country}`,
     chips: [
-      { label: "Country", value: country },
-      { label: "End from", value: dateFrom },
-      { label: "End to", value: dateTo }
+      { label: t("label.country"), value: country },
+      { label: t("label.endFrom"), value: dateFrom },
+      { label: t("label.endTo"), value: dateTo }
     ].filter((entry) => entry.value)
   });
   updateOriginalLink(TOURNAMENT_SEARCH_URL);
-  setStatus(`Found ${parsed.rows.length} tournaments.`, "success");
+  setStatus(t("status.tournamentsFound", { rows: parsed.rows.length }), "success");
 }
 
 async function loadPlayerSearch({ firstName = "", lastName = "", country = "", historyMode = "push" } = {}) {
@@ -498,7 +778,7 @@ async function loadPlayerSearch({ firstName = "", lastName = "", country = "", h
   }
 
   const initialProxyUrl = PROXY_LOADER.buildUrl(PLAYER_SEARCH_URL, Date.now());
-  setStatus(`Preparing player search via ${PROXY_LOADER.name}...`);
+  setStatus(t("status.playerSearchPreparing", { proxy: PROXY_LOADER.name }));
   const initialResponse = await fetch(initialProxyUrl, { cache: "no-store" });
   if (!initialResponse.ok) {
     throw new Error(`Could not open player search with status ${initialResponse.status}.`);
@@ -512,7 +792,7 @@ async function loadPlayerSearch({ firstName = "", lastName = "", country = "", h
   });
   const proxyUrl = PROXY_LOADER.buildUrl(PLAYER_SEARCH_URL, Date.now());
 
-  setStatus(`Searching players via ${PROXY_LOADER.name}...`);
+  setStatus(t("status.searchingPlayers", { proxy: PROXY_LOADER.name }));
   const response = await fetch(proxyUrl, {
     method: "POST",
     cache: "no-store",
@@ -544,13 +824,13 @@ async function loadPlayerSearch({ firstName = "", lastName = "", country = "", h
     ...parsed,
     title: `${parsed.title} · ${[normalizedFirstName, normalizedLastName].filter(Boolean).join(" ")} · ${normalizedCountry}`,
     chips: [
-      { label: "First name", value: normalizedFirstName },
-      { label: "Last name", value: normalizedLastName },
-      { label: "Country", value: normalizedCountry }
+      { label: t("label.firstName"), value: normalizedFirstName },
+      { label: t("label.lastName"), value: normalizedLastName },
+      { label: t("label.country"), value: normalizedCountry }
     ].filter((entry) => entry.value)
   });
   updateOriginalLink(PLAYER_SEARCH_URL);
-  setStatus(`Found ${parsed.rows.length} player entries.`, "success");
+  setStatus(t("status.playersFound", { rows: parsed.rows.length }), "success");
 }
 
 form.addEventListener("submit", async (event) => {
@@ -559,17 +839,14 @@ form.addEventListener("submit", async (event) => {
   debugLog("form submit", { url });
 
   if (!url) {
-    setStatus("Enter a Chess-Results page URL.", "error");
+    setStatus(t("status.enterUrl"), "error");
     return;
   }
 
   try {
     await loadFromUrl(url, { historyMode: "push" });
   } catch (error) {
-    setStatus(
-      `${error.message} If this is a browser CORS block, use the HTML paste fallback below.`,
-      "error"
-    );
+    setStatus(t("status.proxyFallback", { message: error.message }), "error");
   }
 });
 
@@ -609,7 +886,7 @@ parseButton.addEventListener("click", () => {
     htmlLength: html.length
   });
   if (!html) {
-    setStatus("Paste the full Chess-Results page HTML first.", "error");
+    setStatus(t("status.pasteHtml"), "error");
     return;
   }
 
@@ -626,7 +903,7 @@ parseButton.addEventListener("click", () => {
     }
     renderResult(parsed);
     updateOriginalLink(sourceUrl);
-    setStatus(`Parsed ${parsed.rows.length} rows from pasted HTML.`, "success");
+    setStatus(t("status.parsed", { rows: parsed.rows.length }), "success");
   } catch (error) {
     setStatus(error.message, "error");
   }
@@ -642,7 +919,7 @@ demoButton.addEventListener("click", () => {
     writeQueryState(window.history, window.location.href, { url: DEMO_URL, parent: parsed.backUrl || "" }, "push");
     renderResult(parsed);
     updateOriginalLink(DEMO_URL);
-    setStatus(`Loaded demo data for ${parsed.title}.`, "success");
+    setStatus(t("status.demoLoaded", { player: parsed.title }), "success");
   } catch (error) {
     setStatus(error.message, "error");
   }
@@ -653,7 +930,7 @@ mobileReloadButton.addEventListener("click", async () => {
   debugLog("mobile reload click", { url });
 
   if (!url) {
-    setStatus("Enter a Chess-Results page URL.", "error");
+    setStatus(t("status.enterUrl"), "error");
     return;
   }
 
@@ -705,6 +982,15 @@ resultPanel.addEventListener("click", async (event) => {
     setStatus(error.message, "error");
   }
 });
+
+languageSelect?.addEventListener("change", () => {
+  currentLanguage = languageSelect.value === "ru" ? "ru" : "en";
+  window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+  applyLanguage();
+});
+
+applyLanguage();
+scheduleWatchPolling();
 
 playerCountryInput.value = playerCountryInput.value.trim().toUpperCase() || "LAT";
 
