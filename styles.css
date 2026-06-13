@@ -157,8 +157,11 @@ input,
 textarea,
 button {
   width: 100%;
+  inline-size: 100%;
   min-width: 0;
+  min-inline-size: 0;
   max-width: 100%;
+  max-inline-size: 100%;
   border-radius: 16px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.8);
@@ -176,6 +179,13 @@ select {
 input,
 textarea {
   padding: 0.95rem 1rem;
+}
+
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  overflow: hidden;
 }
 
 .tournament-search {
