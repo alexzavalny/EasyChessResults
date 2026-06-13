@@ -574,7 +574,7 @@ test("index cache-busts scripts for tournament search deployment", () => {
 
   assert.match(html, /script\.js\?v=20260613-2/);
   assert.match(html, /lib\/chess-results\.js\?v=20260613-1/);
-  assert.match(html, /styles\.css\?v=20260613-2/);
+  assert.match(html, /styles\.css\?v=20260613-3/);
   assert.match(html, /<meta name="color-scheme" content="light dark" \/>/);
   assert.match(html, /<meta name="theme-color" content="#121816" media="\(prefers-color-scheme: dark\)" \/>/);
   assert.match(html, /<form id="search-form"[^>]*onsubmit="return false"/);
