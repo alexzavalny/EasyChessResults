@@ -25,6 +25,7 @@ const originalLinkNode = document.querySelector("#original-link");
 const resultSubtitleNode = document.querySelector("#result-subtitle");
 const resultMetaNode = document.querySelector("#result-meta");
 const resultMetaLinksNode = document.querySelector("#result-meta-links");
+const playerStoryNode = document.querySelector("#player-story");
 const typeFilterWrapNode = document.querySelector("#type-filter-wrap");
 const typeFilterSelectNode = document.querySelector("#type-filter-select");
 const resultsHeadNode = document.querySelector("#results-head");
@@ -41,7 +42,6 @@ const {
   attachPlayerNavigation,
   buildInternalPageUrl,
   buildPlayerSearchPayload,
-  buildTournamentSearchPayload,
   chip,
   collectUniqueColumnValues,
   debugLog,
@@ -122,7 +122,19 @@ const TRANSLATIONS = {
     "label.endFrom": "End from",
     "label.endTo": "End to",
     "label.firstName": "First name",
-    "label.lastName": "Last name"
+    "label.lastName": "Last name",
+    "story.title": "Tournament story",
+    "story.scoreJourney": "Score journey",
+    "story.opponentStrength": "Opponent strength",
+    "story.highlights": "Highlights",
+    "story.finalScore": "Final score",
+    "story.expected": "Expected score",
+    "story.bestResult": "Best result",
+    "story.toughestOpponent": "Toughest opponent",
+    "story.colorSplit": "Color split",
+    "story.white": "White",
+    "story.black": "Black",
+    "story.noRating": "no rating"
   },
   ru: {
     "hero.eyebrow": "Парсер Chess-Results",
@@ -179,7 +191,19 @@ const TRANSLATIONS = {
     "label.endFrom": "Окончание от",
     "label.endTo": "Окончание до",
     "label.firstName": "Имя",
-    "label.lastName": "Фамилия"
+    "label.lastName": "Фамилия",
+    "story.title": "История турнира",
+    "story.scoreJourney": "Ход очков",
+    "story.opponentStrength": "Сила соперников",
+    "story.highlights": "Моменты",
+    "story.finalScore": "Итог",
+    "story.expected": "Ожидание",
+    "story.bestResult": "Лучший результат",
+    "story.toughestOpponent": "Самый сильный соперник",
+    "story.colorSplit": "По цветам",
+    "story.white": "Белыми",
+    "story.black": "Чёрными",
+    "story.noRating": "без рейтинга"
   }
 };
 const TOURNAMENT_SEARCH_URL = "https://s2.chess-results.com/turniersuche.aspx?lan=1";
@@ -216,6 +240,9 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
   });
+  if (currentView?.kind === "player") {
+    renderPlayerStory(currentView);
+  }
   updateBookmarkButton(currentView);
   updateWatchButton(currentView);
   if (!currentView) {
@@ -447,6 +474,8 @@ function clearView({ keepUrl = false } = {}) {
   resultMetaNode.innerHTML = "";
   resultMetaLinksNode.innerHTML = "";
   resultMetaLinksNode.hidden = true;
+  playerStoryNode.innerHTML = "";
+  playerStoryNode.hidden = true;
   resultsHeadNode.innerHTML = "";
   resultsBodyNode.innerHTML = "";
   mobileListNode.innerHTML = "";
@@ -490,6 +519,128 @@ function renderTypeFilter(view) {
     ...values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
   ].join("");
   typeFilterSelectNode.value = values.includes(currentTypeFilter) ? currentTypeFilter : "";
+}
+
+function parseChessNumber(value = "") {
+  const normalized = String(value)
+    .replace("½", "0.5")
+    .replace(/,/g, ".")
+    .trim();
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatChessNumber(value) {
+  if (!Number.isFinite(value)) return "0";
+  return Number.isInteger(value) ? String(value) : String(value).replace(".", ",");
+}
+
+function getPlayerStoryGames(view) {
+  if (!view || view.kind !== "player" || !Array.isArray(view.rows)) return [];
+  const indexByLabel = Object.fromEntries((view.columns || []).map((column, index) => [column.label, index]));
+  const getText = (row, label) => String(row.cells?.[indexByLabel[label]]?.text || "").trim();
+  const getRaw = (row, label) => String(row.cells?.[indexByLabel[label]]?.raw || getText(row, label)).trim();
+
+  return view.rows.map((row, index) => {
+    const result = parseChessNumber(getText(row, "Res"));
+    const ratingText = getText(row, "Rtg");
+    const rating = Number.parseInt(ratingText.replace(/\D/g, ""), 10);
+    const colorRaw = getRaw(row, "Clr").toLowerCase();
+    return {
+      round: getText(row, "Rd") || String(index + 1),
+      name: getText(row, "Name"),
+      rating: Number.isFinite(rating) ? rating : null,
+      result,
+      resultText: getText(row, "Res"),
+      color: colorRaw.includes("black") ? "black" : colorRaw.includes("white") ? "white" : ""
+    };
+  }).filter((game) => game.round || game.name || game.resultText);
+}
+
+function resultTone(result) {
+  if (result >= 1) return "win";
+  if (result > 0) return "draw";
+  return "loss";
+}
+
+function renderPlayerStory(view) {
+  const games = getPlayerStoryGames(view);
+  if (!games.length) {
+    playerStoryNode.innerHTML = "";
+    playerStoryNode.hidden = true;
+    return;
+  }
+
+  let cumulative = 0;
+  const journey = games.map((game) => {
+    cumulative += game.result;
+    return { ...game, cumulative };
+  });
+  const finalScore = cumulative;
+  const ratedGames = games.filter((game) => game.rating !== null);
+  const strongest = ratedGames.reduce((best, game) => (!best || game.rating > best.rating ? game : best), null);
+  const bestWin = ratedGames
+    .filter((game) => game.result >= 1)
+    .reduce((best, game) => (!best || game.rating > best.rating ? game : best), null);
+  const whiteGames = games.filter((game) => game.color === "white");
+  const blackGames = games.filter((game) => game.color === "black");
+  const sum = (items) => items.reduce((total, game) => total + game.result, 0);
+  const maxScore = Math.max(1, games.length);
+  const maxRating = Math.max(...ratedGames.map((game) => game.rating || 0), 1);
+  const minRating = Math.min(...ratedGames.map((game) => game.rating || maxRating), maxRating);
+  const ratingRange = Math.max(1, maxRating - minRating);
+  const scorePoints = journey.map((game, index) => {
+    const x = games.length === 1 ? 50 : 8 + (index / (games.length - 1)) * 84;
+    const y = 86 - (game.cumulative / maxScore) * 68;
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(" ");
+  const ratingBars = games.map((game) => {
+    const height = game.rating === null ? 18 : 18 + ((game.rating - minRating) / ratingRange) * 48;
+    return `
+      <div class="story-rating-bar story-${resultTone(game.result)}" style="--bar-height:${height.toFixed(1)}%">
+        <span>${escapeHtml(game.round)}</span>
+        <strong>${escapeHtml(game.rating === null ? "—" : String(game.rating))}</strong>
+      </div>`;
+  }).join("");
+  const journeyDots = journey.map((game, index) => {
+    const x = games.length === 1 ? 50 : 8 + (index / (games.length - 1)) * 84;
+    const y = 86 - (game.cumulative / maxScore) * 68;
+    return `<g class="story-dot story-${resultTone(game.result)}">
+      <circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3.8"></circle>
+      <text x="${x.toFixed(2)}" y="96">${escapeHtml(game.round)}</text>
+      <title>Rd ${escapeHtml(game.round)}: ${escapeHtml(game.resultText)} → ${escapeHtml(formatChessNumber(game.cumulative))}</title>
+    </g>`;
+  }).join("");
+  const highlights = [
+    { label: t("story.finalScore"), value: `${formatChessNumber(finalScore)} / ${games.length}` },
+    bestWin ? { label: t("story.bestResult"), value: `${bestWin.name || "—"} · ${bestWin.rating}` } : null,
+    strongest ? { label: t("story.toughestOpponent"), value: `${strongest.name || "—"} · ${strongest.rating}` } : null,
+    { label: t("story.colorSplit"), value: `${t("story.white")} ${formatChessNumber(sum(whiteGames))}/${whiteGames.length || 0} · ${t("story.black")} ${formatChessNumber(sum(blackGames))}/${blackGames.length || 0}` }
+  ].filter(Boolean);
+
+  playerStoryNode.innerHTML = `
+    <div class="story-head">
+      <p class="label">${escapeHtml(t("story.title"))}</p>
+      <div class="story-score-pill">${escapeHtml(formatChessNumber(finalScore))} / ${escapeHtml(String(games.length))}</div>
+    </div>
+    <div class="story-grid">
+      <article class="story-card story-score-card">
+        <h3>${escapeHtml(t("story.scoreJourney"))}</h3>
+        <svg class="story-score-svg" viewBox="0 0 100 100" role="img" aria-label="${escapeHtml(t("story.scoreJourney"))}">
+          <polyline class="story-score-line" points="${scorePoints}"></polyline>
+          ${journeyDots}
+        </svg>
+      </article>
+      <article class="story-card">
+        <h3>${escapeHtml(t("story.opponentStrength"))}</h3>
+        <div class="story-rating-bars">${ratingBars}</div>
+      </article>
+      <article class="story-card story-highlights">
+        <h3>${escapeHtml(t("story.highlights"))}</h3>
+        ${highlights.map((item) => `<div><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong></div>`).join("")}
+      </article>
+    </div>`;
+  playerStoryNode.hidden = false;
 }
 
 function renderResult(view) {
@@ -543,6 +694,7 @@ function renderResult(view) {
     )
     .join("");
   resultMetaLinksNode.hidden = !(decoratedView.tournamentLinks || []).length;
+  renderPlayerStory(decoratedView);
   resultsHeadNode.innerHTML = renderTableHead(decoratedView.columns);
   resultsBodyNode.innerHTML = renderTableRows(decoratedView.rows, window.location.href);
   mobileListNode.innerHTML = renderMobileRows(decoratedView.rows, window.location.href);
@@ -718,33 +870,20 @@ function extractHiddenFields(html) {
 
 async function loadTournamentSearch({ dateFrom = "", dateTo = "", historyMode = "push" } = {}) {
   const country = TOURNAMENT_SEARCH_COUNTRY;
-  const initialProxyUrl = PROXY_LOADER.buildUrl(TOURNAMENT_SEARCH_URL, Date.now());
-
-  setStatus(t("status.searchPreparing", { proxy: PROXY_LOADER.name }));
-  const initialResponse = await fetch(initialProxyUrl, { cache: "no-store" });
-  if (!initialResponse.ok) {
-    throw new Error(`Could not open tournament search with status ${initialResponse.status}.`);
-  }
-  const initialHtml = await PROXY_LOADER.parseResponse(initialResponse);
-  const payload = buildTournamentSearchPayload({
-    country,
-    dateFrom,
-    dateTo,
-    hiddenFields: extractHiddenFields(initialHtml)
-  });
-  const proxyUrl = PROXY_LOADER.buildUrl(TOURNAMENT_SEARCH_URL, Date.now());
+  const proxyUrl = PROXY_LOADER.buildTournamentSearchUrl();
 
   setStatus(t("status.searchingTournaments", { proxy: PROXY_LOADER.name }));
   const response = await fetch(proxyUrl, {
     method: "POST",
     cache: "no-store",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
+      "Content-Type": "application/json"
     },
-    body: payload.toString()
+    body: JSON.stringify({ country, dateFrom, dateTo })
   });
   if (!response.ok) {
-    throw new Error(`Tournament search failed with status ${response.status}.`);
+    const message = await response.text().catch(() => "");
+    throw new Error(message || `Tournament search failed with status ${response.status}.`);
   }
   const html = await PROXY_LOADER.parseResponse(response);
   const parsed = parseTournamentSearchPage(html, TOURNAMENT_SEARCH_URL);

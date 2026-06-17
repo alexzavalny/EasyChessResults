@@ -505,6 +505,171 @@ button.ghost {
   overflow-x: auto;
 }
 
+.player-story {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(191, 91, 50, 0.14);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(191, 91, 50, 0.12), transparent 13rem),
+    rgba(255, 255, 255, 0.46);
+}
+
+.story-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.story-head .label {
+  margin: 0;
+}
+
+.story-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.48rem 0.7rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff8f1;
+  font: 700 0.82rem "IBM Plex Mono", monospace;
+  box-shadow: 0 12px 26px rgba(191, 91, 50, 0.22);
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(14rem, 0.9fr);
+  gap: 0.85rem;
+}
+
+.story-card {
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid rgba(28, 35, 33, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.72);
+}
+
+.story-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.story-score-svg {
+  display: block;
+  width: 100%;
+  min-height: 11rem;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(39, 90, 74, 0.07), rgba(191, 91, 50, 0.04));
+}
+
+.story-score-line {
+  fill: none;
+  stroke: var(--accent-dark);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.story-dot circle {
+  stroke: rgba(255, 252, 246, 0.96);
+  stroke-width: 1.4;
+}
+
+.story-dot text {
+  fill: var(--muted);
+  font: 4px "IBM Plex Mono", monospace;
+  text-anchor: middle;
+}
+
+.story-win circle,
+.story-rating-bar.story-win::before {
+  fill: #218057;
+  background: #218057;
+}
+
+.story-draw circle,
+.story-rating-bar.story-draw::before {
+  fill: #d59b2d;
+  background: #d59b2d;
+}
+
+.story-loss circle,
+.story-rating-bar.story-loss::before {
+  fill: #b73434;
+  background: #b73434;
+}
+
+.story-rating-bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(2.2rem, 1fr));
+  align-items: end;
+  gap: 0.42rem;
+  min-height: 11rem;
+}
+
+.story-rating-bar {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  gap: 0.24rem;
+  min-width: 0;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+}
+
+.story-rating-bar::before {
+  content: "";
+  display: block;
+  width: 100%;
+  max-width: 1.55rem;
+  height: var(--bar-height);
+  min-height: 1.2rem;
+  border-radius: 999px 999px 0.45rem 0.45rem;
+  opacity: 0.82;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+
+.story-rating-bar strong {
+  color: var(--text);
+  font-size: 0.66rem;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.story-highlights {
+  display: grid;
+  align-content: start;
+  gap: 0.62rem;
+}
+
+.story-highlights div {
+  display: grid;
+  gap: 0.15rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid rgba(28, 35, 33, 0.08);
+}
+
+.story-highlights div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.story-highlights span {
+  color: var(--muted);
+  font: 0.72rem "IBM Plex Mono", monospace;
+}
+
+.story-highlights strong {
+  font-size: 0.86rem;
+  line-height: 1.3;
+}
+
 .mobile-list {
   display: none;
   margin-top: 1rem;
@@ -641,6 +806,19 @@ a {
     display: none;
   }
 
+  .story-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-story {
+    padding: 0.8rem;
+    border-radius: 18px;
+  }
+
+  .story-rating-bars {
+    min-height: 8.5rem;
+  }
+
   .mobile-list {
     display: grid;
   }
@@ -758,6 +936,26 @@ a {
   .mobile-card {
     border-color: rgba(242, 234, 220, 0.1);
     background: rgba(12, 17, 16, 0.48);
+  }
+
+  .player-story {
+    border-color: rgba(224, 122, 79, 0.22);
+    background:
+      radial-gradient(circle at 8% 12%, rgba(224, 122, 79, 0.1), transparent 13rem),
+      rgba(12, 17, 16, 0.34);
+  }
+
+  .story-card {
+    border-color: rgba(242, 234, 220, 0.1);
+    background: rgba(12, 17, 16, 0.42);
+  }
+
+  .story-score-svg {
+    background: linear-gradient(180deg, rgba(127, 214, 173, 0.08), rgba(224, 122, 79, 0.05));
+  }
+
+  .story-highlights div {
+    border-bottom-color: rgba(242, 234, 220, 0.08);
   }
 
   .color-dot.white { border-color: rgba(242, 234, 220, 0.35); }
