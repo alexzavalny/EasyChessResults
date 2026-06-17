@@ -548,15 +548,18 @@ function getPlayerStoryGames(view) {
     const ratingText = getText(row, "Rtg");
     const rating = Number.parseInt(ratingText.replace(/\D/g, ""), 10);
     const colorRaw = getRaw(row, "Clr").toLowerCase();
+    const name = getText(row, "Name");
+    const isBye = name.toLowerCase() === "bye";
     return {
       round: getText(row, "Rd") || String(index + 1),
-      name: getText(row, "Name"),
+      name,
       rating: Number.isFinite(rating) && rating > 0 ? rating : null,
       result,
       resultText: getText(row, "Res"),
-      color: colorRaw.includes("black") ? "black" : colorRaw.includes("white") ? "white" : ""
+      color: colorRaw.includes("black") ? "black" : colorRaw.includes("white") ? "white" : "",
+      isBye
     };
-  }).filter((game) => game.round || game.name || game.resultText);
+  }).filter((game) => (game.round || game.name || game.resultText) && !game.isBye);
 }
 
 function resultTone(result) {
