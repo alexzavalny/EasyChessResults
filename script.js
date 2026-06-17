@@ -549,7 +549,7 @@ function getPlayerStoryGames(view) {
     return {
       round: getText(row, "Rd") || String(index + 1),
       name: getText(row, "Name"),
-      rating: Number.isFinite(rating) ? rating : null,
+      rating: Number.isFinite(rating) && rating > 0 ? rating : null,
       result,
       resultText: getText(row, "Res"),
       color: colorRaw.includes("black") ? "black" : colorRaw.includes("white") ? "white" : ""
@@ -595,11 +595,12 @@ function renderPlayerStory(view) {
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   }).join(" ");
   const ratingBars = games.map((game) => {
-    const height = game.rating === null ? 18 : 18 + ((game.rating - minRating) / ratingRange) * 48;
+    const height = game.rating === null ? 42 : 18 + ((game.rating - minRating) / ratingRange) * 48;
+    const ratingLabel = game.rating === null ? "—" : String(game.rating);
     return `
-      <div class="story-rating-bar story-${resultTone(game.result)}" style="--bar-height:${height.toFixed(1)}%">
+      <div class="story-rating-bar story-${resultTone(game.result)}${game.rating === null ? " story-unrated" : ""}" style="--bar-height:${height.toFixed(1)}%">
         <span>${escapeHtml(game.round)}</span>
-        <strong>${escapeHtml(game.rating === null ? "—" : String(game.rating))}</strong>
+        <strong>${escapeHtml(ratingLabel)}</strong>
       </div>`;
   }).join("");
   const journeyDots = journey.map((game, index) => {

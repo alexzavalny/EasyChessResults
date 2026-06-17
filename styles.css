@@ -642,6 +642,25 @@ button.ghost {
   transform: rotate(180deg);
 }
 
+.story-rating-bar.story-unrated::before {
+  opacity: 0.34;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--muted) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+.story-rating-bar.story-unrated strong {
+  max-width: 3.2rem;
+  color: var(--muted);
+  font-size: 0.58rem;
+  line-height: 1.05;
+  text-align: center;
+  writing-mode: horizontal-tb;
+  transform: none;
+}
+
 .story-highlights {
   display: grid;
   align-content: start;
