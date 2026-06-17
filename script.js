@@ -593,6 +593,9 @@ function renderPlayerStory(view) {
   const whiteGames = games.filter((game) => game.color === "white");
   const blackGames = games.filter((game) => game.color === "black");
   const sum = (items) => items.reduce((total, game) => total + game.result, 0);
+  const tprRating = ratedGames.length >= 2
+    ? Math.round(ratedGames.reduce((sum, g) => sum + g.rating, 0) / ratedGames.length + 400 * ((sum(games) - (games.length - sum(games))) / ratedGames.length))
+    : null;
   const maxScore = Math.max(1, games.length);
   const maxRating = Math.max(...ratedGames.map((game) => game.rating || 0), 1);
   const minRating = Math.min(...ratedGames.map((game) => game.rating || maxRating), maxRating);
@@ -622,6 +625,7 @@ function renderPlayerStory(view) {
   }).join("");
   const highlights = [
     { label: t("story.finalScore"), value: `${formatChessNumber(finalScore)} / ${games.length}` },
+    tprRating ? { label: "TPR", value: String(tprRating) } : null,
     bestWin ? { label: t("story.bestResult"), value: `${bestWin.name || "—"} · ${bestWin.rating}` } : null,
     worstLoss ? { label: t("story.worstLoss"), value: `${worstLoss.name || "—"} · ${worstLoss.rating}` } : null,
     strongest ? { label: t("story.toughestOpponent"), value: `${strongest.name || "—"} · ${strongest.rating}` } : null,
