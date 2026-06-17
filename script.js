@@ -593,9 +593,8 @@ function renderPlayerStory(view) {
   const whiteGames = games.filter((game) => game.color === "white");
   const blackGames = games.filter((game) => game.color === "black");
   const sum = (items) => items.reduce((total, game) => total + game.result, 0);
-  const tprRating = ratedGames.length >= 2
-    ? Math.round(ratedGames.reduce((sum, g) => sum + g.rating, 0) / ratedGames.length + 400 * ((sum(games) - (games.length - sum(games))) / ratedGames.length))
-    : null;
+  const perfChip = view.chips?.find((c) => c.label?.toLowerCase().includes("perf"));
+  const tprRating = perfChip ? Number.parseInt(String(perfChip.value).replace(/\D/g, ""), 10) : null;
   const maxScore = Math.max(1, games.length);
   const maxRating = Math.max(...ratedGames.map((game) => game.rating || 0), 1);
   const minRating = Math.min(...ratedGames.map((game) => game.rating || maxRating), maxRating);
