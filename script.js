@@ -585,7 +585,7 @@ function renderPlayerStory(view) {
     .filter((game) => game.result >= 1)
     .reduce((best, game) => (!best || game.rating > best.rating ? game : best), null);
   const worstLoss = ratedGames
-    .filter((game) => game.result < 1 && game.result >= 0)
+    .filter((game) => game.result === 0)
     .reduce((worst, game) => (!worst || game.rating < worst.rating ? game : worst), null);
   const whiteGames = games.filter((game) => game.color === "white");
   const blackGames = games.filter((game) => game.color === "black");
