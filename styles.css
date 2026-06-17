@@ -643,12 +643,7 @@ button.ghost {
 }
 
 .story-rating-bar.story-unrated::before {
-  opacity: 0.34;
-  background: repeating-linear-gradient(
-    45deg,
-    var(--muted) 0 4px,
-    transparent 4px 8px
-  );
+  opacity: 0.4;
 }
 
 .story-rating-bar.story-unrated strong {
