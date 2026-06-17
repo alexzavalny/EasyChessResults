@@ -130,6 +130,7 @@ const TRANSLATIONS = {
     "story.finalScore": "Final score",
     "story.expected": "Expected score",
     "story.bestResult": "Best result",
+    "story.worstLoss": "Worst loss",
     "story.toughestOpponent": "Toughest opponent",
     "story.colorSplit": "Color split",
     "story.white": "White",
@@ -199,6 +200,7 @@ const TRANSLATIONS = {
     "story.finalScore": "Итог",
     "story.expected": "Ожидание",
     "story.bestResult": "Лучший результат",
+    "story.worstLoss": "Худший проигрыш",
     "story.toughestOpponent": "Самый сильный соперник",
     "story.colorSplit": "По цветам",
     "story.white": "Белыми",
@@ -582,6 +584,9 @@ function renderPlayerStory(view) {
   const bestWin = ratedGames
     .filter((game) => game.result >= 1)
     .reduce((best, game) => (!best || game.rating > best.rating ? game : best), null);
+  const worstLoss = ratedGames
+    .filter((game) => game.result < 1 && game.result >= 0)
+    .reduce((worst, game) => (!worst || game.rating < worst.rating ? game : worst), null);
   const whiteGames = games.filter((game) => game.color === "white");
   const blackGames = games.filter((game) => game.color === "black");
   const sum = (items) => items.reduce((total, game) => total + game.result, 0);
@@ -615,6 +620,7 @@ function renderPlayerStory(view) {
   const highlights = [
     { label: t("story.finalScore"), value: `${formatChessNumber(finalScore)} / ${games.length}` },
     bestWin ? { label: t("story.bestResult"), value: `${bestWin.name || "—"} · ${bestWin.rating}` } : null,
+    worstLoss ? { label: t("story.worstLoss"), value: `${worstLoss.name || "—"} · ${worstLoss.rating}` } : null,
     strongest ? { label: t("story.toughestOpponent"), value: `${strongest.name || "—"} · ${strongest.rating}` } : null,
     { label: t("story.colorSplit"), value: `${t("story.white")} ${formatChessNumber(sum(whiteGames))}/${whiteGames.length || 0} · ${t("story.black")} ${formatChessNumber(sum(blackGames))}/${blackGames.length || 0}` }
   ].filter(Boolean);
